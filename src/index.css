@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 220 13% 9%;
+    --foreground: 220 9% 95%;
+
+    --card: 220 13% 11%;
+    --card-foreground: 220 9% 95%;
+
+    --popover: 220 13% 11%;
+    --popover-foreground: 220 9% 95%;
+
+    --primary: 263 70% 65%;
+    --primary-foreground: 220 13% 9%;
+
+    --secondary: 220 13% 15%;
+    --secondary-foreground: 220 9% 90%;
+
+    --muted: 220 13% 15%;
+    --muted-foreground: 220 9% 65%;
+
+    --accent: 263 70% 65%;
+    --accent-foreground: 220 13% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 220 9% 95%;
+
+    --border: 220 13% 20%;
+    --input: 220 13% 15%;
+    --ring: 263 70% 65%;
+
+    /* Manga app specific tokens */
+    --manga-primary: 263 70% 65%;
+    --manga-secondary: 193 83% 67%;
+    --manga-surface: 220 13% 11%;
+    --manga-surface-elevated: 220 13% 15%;
+    --manga-text-primary: 220 9% 95%;
+    --manga-text-secondary: 220 9% 75%;
+    --manga-text-muted: 220 9% 55%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(263 70% 65%), hsl(193 83% 67%));
+    --gradient-surface: linear-gradient(180deg, hsl(220 13% 11%), hsl(220 13% 9%));
+    --gradient-card: linear-gradient(135deg, hsl(220 13% 15%), hsl(220 13% 11%));
+    --gradient-card: linear-gradient(145deg, hsl(220 13% 11%), hsl(220 13% 13%));
+    
+    /* Shadows */
+    --shadow-manga: 0 10px 30px -10px hsl(263 70% 65% / 0.3);
+    --shadow-card: 0 4px 12px -2px hsl(220 13% 5% / 0.5);
+    --shadow-elevated: 0 8px 25px -5px hsl(220 13% 5% / 0.7);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode uses same values as root since we're dark by default */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
