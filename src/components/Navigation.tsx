@@ -47,7 +47,7 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl text-manga-text-primary">MangaHub</span>
+            <span className="font-bold text-xl text-manga-text-primary">Culto do Demônio Celestial</span>
           </div>
           
           {/* Navigation Links */}
@@ -100,7 +100,7 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
           <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
             <BookOpen className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-bold text-lg text-manga-text-primary">MangaHub</span>
+          <span className="font-bold text-lg text-manga-text-primary">Culto do Demônio Celestial</span>
         </div>
         
         <Button

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useLocalFileUpload } from '@/hooks/useLocalFileUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +20,9 @@ const GENEROS_MANGA = [
 ];
 
 const profileUpdateSchema = z.object({
-  nome: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
+  nome: z.string()
+    .min(1, 'Nome é obrigatório')
+    .max(100, 'Nome deve ter no máximo 100 caracteres'),
   preferencias: z.array(z.string()).min(1, 'Selecione pelo menos uma preferência'),
   conteudo_adulto: z.boolean()
 });
@@ -32,6 +35,7 @@ interface ProfileEditFormProps {
 export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { uploadFile } = useLocalFileUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -49,56 +53,20 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'Arquivo muito grande',
-        description: 'A foto deve ter no máximo 5MB',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Formato inválido',
-        description: 'Selecione apenas arquivos de imagem',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     try {
       setUploadingPhoto(true);
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      
-      toast({
-        title: 'Foto carregada!',
-        description: 'Sua foto foi carregada com sucesso'
+      const result = await uploadFile(file, {
+        folder: 'profile-photos',
+        maxSizeBytes: 5 * 1024 * 1024,
+        allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
       });
+
+      if (result) {
+        setFormData(prev => ({ ...prev, avatar_url: result.url }));
+      }
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
-      toast({
-        title: 'Erro no upload',
-        description: 'Não foi possível carregar a foto',
-        variant: 'destructive'
-      });
     } finally {
       setUploadingPhoto(false);
     }
@@ -121,6 +89,19 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
       setLoading(true);
       setErrors({});
 
+      // Check if name is unique before validation
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('nome', formData.nome)
+        .neq('user_id', user.id)
+        .single();
+
+      if (existingProfile) {
+        setErrors({ nome: 'Este nome já está sendo usado por outro usuário' });
+        return;
+      }
+
       const validatedData = profileUpdateSchema.parse(formData);
 
       const { error } = await supabase
@@ -133,7 +114,14 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a unique constraint violation
+        if (error.code === '23505' && error.message.includes('profiles_nome_unique')) {
+          setErrors({ nome: 'Este nome já está sendo usado por outro usuário' });
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: 'Perfil atualizado!',

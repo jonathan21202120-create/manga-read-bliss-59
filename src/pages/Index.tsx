@@ -362,7 +362,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-manga-surface-elevated py-8">
         <div className="container mx-auto px-6 text-center text-manga-text-muted">
-          <p>&copy; 2024 MangaHub. Feito com ❤️ para os amantes de mangá.</p>
+          <p>&copy; 2024 Culto do Demônio Celestial. Forjado nas chamas do entretenimento para os cultistas dos mangás.</p>
         </div>
       </footer>
     </div>

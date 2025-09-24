@@ -80,11 +80,18 @@ export default function ProfileSetup() {
           conteudo_adulto: validatedData.conteudo_adulto
         });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a unique constraint violation
+        if (error.code === '23505' && error.message.includes('profiles_nome_unique')) {
+          setErrors({ nome: 'Este nome já está sendo usado por outro usuário' });
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: 'Perfil criado com sucesso!',
-        description: 'Bem-vindo ao nosso app de mangás!'
+        description: 'Bem-vindo ao Culto do Demônio Celestial!'
       });
 
       navigate('/');
