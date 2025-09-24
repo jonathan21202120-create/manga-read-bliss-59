@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ProfileEditForm } from "@/components/ProfileEditForm";
+import { ClearHistoryDialog } from "@/components/ClearHistoryDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { 
   User, 
   BookOpen, 
@@ -14,12 +17,15 @@ import {
   Calendar, 
   Trophy,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from "lucide-react";
 
 export default function Profile() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
   
   const handleContinueReading = (mangaId: number, chapterId: number, page: number) => {
     navigate(`/manga/${mangaId}/chapter/${chapterId}?page=${page}`);
@@ -82,7 +88,7 @@ export default function Profile() {
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-center gap-6">
               <Avatar className="w-24 h-24 border-4 border-manga-primary">
-                <AvatarImage src="/placeholder.svg" />
+                <AvatarImage src={user?.profile?.avatar_url || "/placeholder.svg"} />
                 <AvatarFallback className="bg-manga-primary text-primary-foreground text-2xl font-bold">
                   {user?.profile?.nome?.split(' ').map(n => n[0]).join('') || 'U'}
                 </AvatarFallback>
@@ -105,9 +111,20 @@ export default function Profile() {
                 </div>
               </div>
               
-              <Button variant="manga-outline">
-                Editar Perfil
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="manga-outline" onClick={() => setEditProfileOpen(true)}>
+                  Editar Perfil
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setClearHistoryOpen(true)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Limpar Histórico
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -254,6 +271,16 @@ export default function Profile() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Dialogs */}
+      <ProfileEditForm 
+        open={editProfileOpen} 
+        onOpenChange={setEditProfileOpen} 
+      />
+      <ClearHistoryDialog 
+        open={clearHistoryOpen} 
+        onOpenChange={setClearHistoryOpen} 
+      />
     </div>
   );
 }
