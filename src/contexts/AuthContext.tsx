@@ -53,6 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    console.log('Setting up auth state change listener...');
+
     // Set up auth state listener FIRST to avoid missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -60,49 +62,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Auth state change:', event, session?.user?.id);
         
-        // Only synchronous state updates here to prevent deadlocks
         setSession(session);
-        setUser(session?.user ? { ...session.user, profile: undefined } : null);
-        setIsLoading(false);
-        
-        // Defer profile fetching to avoid deadlocks
         if (session?.user) {
+          // Defer profile fetching to avoid blocking
           setTimeout(() => {
             if (mounted) {
               fetchUserProfile(session.user.id).then(profile => {
                 if (mounted) {
-                  setUser(prevUser => prevUser ? { ...prevUser, profile: profile || undefined } : null);
+                  setUser({ ...session.user, profile: profile || undefined });
                 }
               });
             }
-          }, 0);
+          }, 100);
+        } else {
+          setUser(null);
         }
+        setIsLoading(false);
       }
     );
 
     // THEN check for existing session
     const getInitialSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Getting initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
         
         if (!mounted) return;
         
         console.log('Initial session:', session?.user?.id);
         
         setSession(session);
-        setUser(session?.user ? { ...session.user, profile: undefined } : null);
-        setIsLoading(false);
-        
-        // Fetch profile for initial session
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
           if (mounted) {
-            setUser(prevUser => prevUser ? { ...prevUser, profile: profile || undefined } : null);
+            setUser({ ...session.user, profile: profile || undefined });
           }
+        } else {
+          setUser(null);
         }
+        setIsLoading(false);
       } catch (error) {
         console.error('Error getting initial session:', error);
         if (mounted) {
+          setSession(null);
+          setUser(null);
           setIsLoading(false);
         }
       }

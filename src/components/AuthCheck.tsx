@@ -1,16 +1,12 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Login from '@/pages/Login';
-import ProfileSetup from '@/pages/ProfileSetup';
 
-interface ProtectedRouteProps {
+interface AuthCheckProps {
   children: React.ReactNode;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, isLoading, hasProfile } = useAuth();
-
-  console.log('ProtectedRoute render:', { user: !!user, isLoading, hasProfile: hasProfile() });
+export const AuthCheck: React.FC<AuthCheckProps> = ({ children }) => {
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,14 +17,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return <Login />;
-  }
-
-  if (!hasProfile()) {
-    return <ProfileSetup />;
   }
 
   return <>{children}</>;
