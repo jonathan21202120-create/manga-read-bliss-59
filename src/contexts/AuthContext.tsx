@@ -37,12 +37,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data: profile } = await supabase
+      console.log('Fetching profile for user:', userId);
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
       
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      console.log('Profile fetched:', profile);
       return profile;
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -64,20 +71,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         if (session?.user) {
-          // Defer profile fetching to avoid blocking
-          setTimeout(() => {
+          // Fetch profile immediately
+          fetchUserProfile(session.user.id).then(profile => {
             if (mounted) {
-              fetchUserProfile(session.user.id).then(profile => {
-                if (mounted) {
-                  setUser({ ...session.user, profile: profile || undefined });
-                }
-              });
+              console.log('Setting user with profile:', { user: session.user.id, profile: !!profile });
+              setUser({ ...session.user, profile: profile || undefined });
+              setIsLoading(false);
             }
-          }, 100);
+          });
         } else {
           setUser(null);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
@@ -105,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
           if (mounted) {
+            console.log('Initial session - setting user with profile:', { user: session.user.id, profile: !!profile });
             setUser({ ...session.user, profile: profile || undefined });
           }
         } else {
