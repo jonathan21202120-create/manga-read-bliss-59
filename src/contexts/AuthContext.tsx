@@ -118,38 +118,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        setIsLoading(false);
+        // Provide more user-friendly error messages
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Email ou senha incorretos. Verifique suas credenciais.');
+        } else if (error.message.includes('Email address')) {
+          throw new Error('Formato de email inválido.');
+        }
+        throw error;
+      }
+      // User state will be updated by the auth state listener
+    } catch (error) {
       setIsLoading(false);
       throw error;
     }
-    // User state will be updated by the auth state listener
   };
 
   const register = async (email: string, password: string, name: string) => {
     setIsLoading(true);
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          name: name,
+    try {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Formato de email inválido.');
+      }
+      
+      if (password.length < 6) {
+        throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      }
+      
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: name,
+          },
         },
-      },
-    });
-    
-    if (error) {
+      });
+      
+      if (error) {
+        setIsLoading(false);
+        // Provide more user-friendly error messages
+        if (error.message.includes('Email address')) {
+          throw new Error('Este formato de email não é aceito. Tente usar um email diferente (ex: gmail.com, outlook.com).');
+        } else if (error.message.includes('Password')) {
+          throw new Error('A senha deve ter pelo menos 6 caracteres.');
+        } else if (error.message.includes('already registered')) {
+          throw new Error('Este email já está cadastrado. Tente fazer login.');
+        }
+        throw error;
+      }
+      
+      // Show success message for email confirmation
+      setIsLoading(false);
+      // User state will be updated by the auth state listener
+    } catch (error) {
       setIsLoading(false);
       throw error;
     }
-    // User state will be updated by the auth state listener
   };
 
   const logout = async () => {

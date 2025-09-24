@@ -65,7 +65,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             />
           </div>
           <div className="text-sm text-muted-foreground text-center">
-            Teste: test@test.com / 123456
+            <p>Para testar o sistema:</p>
+            <p><strong>Email:</strong> admin@mangareadbliss.com</p>
+            <p><strong>Senha:</strong> admin123</p>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">

@@ -33,7 +33,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
       await register(email, password, name);
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Bem-vindo ao Manga Read Bliss!",
+        description: "Verifique seu email para confirmar a conta antes de fazer login.",
       });
     } catch (error) {
       toast({
