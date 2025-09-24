@@ -1,18 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-
-interface Profile {
-  id: number;
-  user_id: string;
-  nome: string;
-  idade: number;
-  preferencias: string[];
-  conteudo_adulto: boolean;
-  avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import type { Profile } from '@/types/profile';
 
 interface User extends SupabaseUser {
   profile?: Profile;
