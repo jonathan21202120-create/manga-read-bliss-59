@@ -154,11 +154,33 @@ const MangaDetails = () => {
             content,
             likes,
             created_at,
-            user_id,
-            profiles!inner(nome, avatar_url)
+            user_id
           `)
           .eq('manga_id', id)
           .order('created_at', { ascending: false });
+          
+        // Fetch profiles separately and join manually
+        let transformedComments: Comment[] = [];
+        if (commentsData && commentsData.length > 0) {
+          const userIds = commentsData.map(comment => comment.user_id);
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, nome, avatar_url')
+            .in('user_id', userIds);
+            
+          transformedComments = commentsData.map((comment: any) => {
+            const profile = profilesData?.find(p => p.user_id === comment.user_id);
+            return {
+              id: comment.id,
+              user: profile?.nome || 'Usuário',
+              userAvatar: profile?.avatar_url,
+              content: comment.content,
+              date: new Date(comment.created_at).toLocaleDateString(),
+              likes: comment.likes,
+              isSpoiler: comment.content.toLowerCase().includes('spoiler') || comment.content.includes('🔍')
+            };
+          });
+        }
         
         if (commentsData) {
           const transformedComments: Comment[] = commentsData.map((comment: any) => ({
@@ -262,20 +284,22 @@ const MangaDetails = () => {
           manga_id: manga.id,
           content: newComment.trim()
         })
-        .select(`
-          id,
-          content,
-          created_at,
-          profiles!inner(nome, avatar_url)
-        `)
+        .select('id, content, created_at, user_id')
         .single();
       
       if (error) throw error;
       
+      // Get user profile for the new comment
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('nome, avatar_url')
+        .eq('user_id', user.id)
+        .single();
+      
       const newCommentObj: Comment = {
         id: data.id,
-        user: (data as any).profiles?.nome || user.profile?.nome || 'Usuário',
-        userAvatar: (data as any).profiles?.avatar_url || user.profile?.avatar_url,
+        user: profileData?.nome || user.profile?.nome || 'Usuário',
+        userAvatar: profileData?.avatar_url || user.profile?.avatar_url,
         content: data.content,
         date: new Date(data.created_at).toLocaleDateString(),
         likes: 0,
