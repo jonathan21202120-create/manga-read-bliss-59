@@ -27,7 +27,7 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>;
 
 export default function ProfileSetup() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -91,9 +91,11 @@ export default function ProfileSetup() {
 
       toast({
         title: 'Perfil criado com sucesso!',
-        description: 'Bem-vindo ao Culto do Demônio Celestial!'
+        description: 'Bem-vindo ao Manga Read Bliss!'
       });
 
+      // Atualiza o perfil no contexto e redireciona
+      await refreshProfile();
       navigate('/');
     } catch (error) {
       if (error instanceof z.ZodError) {
