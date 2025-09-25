@@ -160,7 +160,6 @@ const MangaDetails = () => {
           .order('created_at', { ascending: false });
           
         // Fetch profiles separately and join manually
-        let transformedComments: Comment[] = [];
         if (commentsData && commentsData.length > 0) {
           const userIds = commentsData.map(comment => comment.user_id);
           const { data: profilesData } = await supabase
@@ -168,7 +167,7 @@ const MangaDetails = () => {
             .select('user_id, nome, avatar_url')
             .in('user_id', userIds);
             
-          transformedComments = commentsData.map((comment: any) => {
+          const transformedComments = commentsData.map((comment: any) => {
             const profile = profilesData?.find(p => p.user_id === comment.user_id);
             return {
               id: comment.id,
@@ -180,18 +179,6 @@ const MangaDetails = () => {
               isSpoiler: comment.content.toLowerCase().includes('spoiler') || comment.content.includes('🔍')
             };
           });
-        }
-        
-        if (commentsData) {
-          const transformedComments: Comment[] = commentsData.map((comment: any) => ({
-            id: comment.id,
-            user: comment.profiles?.nome || 'Usuário',
-            userAvatar: comment.profiles?.avatar_url,
-            content: comment.content,
-            date: new Date(comment.created_at).toLocaleDateString(),
-            likes: comment.likes,
-            isSpoiler: comment.content.toLowerCase().includes('spoiler') || comment.content.includes('🔍')
-          }));
           setComments(transformedComments);
         }
         
@@ -300,7 +287,7 @@ const MangaDetails = () => {
         id: data.id,
         user: profileData?.nome || user.profile?.nome || 'Usuário',
         userAvatar: profileData?.avatar_url || user.profile?.avatar_url,
-        content: data.content,
+        content: isSpoilerComment ? `[SPOILER] ${data.content}` : data.content,
         date: new Date(data.created_at).toLocaleDateString(),
         likes: 0,
         isSpoiler: isSpoilerComment
