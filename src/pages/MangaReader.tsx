@@ -344,7 +344,7 @@ const MangaReader = () => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [currentPage, isFullscreen]);
 
-  // Auto-scroll for webtoon mode
+  // Auto-scroll for webtoon mode and page tracking
   useEffect(() => {
     let scrollInterval: NodeJS.Timeout;
     
@@ -371,6 +371,34 @@ const MangaReader = () => {
       }
     };
   }, [readerSettings.readingMode, readerSettings.autoScroll, readerSettings.scrollSpeed, manga, id, navigate, getCurrentChapterIndex]);
+
+  // Track current page in webtoon mode based on scroll position
+  useEffect(() => {
+    if (readerSettings.readingMode !== "webtoon" || !currentChapter) return;
+
+    const handleScroll = () => {
+      const images = document.querySelectorAll('img[alt^="Página"]');
+      const viewportCenter = window.scrollY + window.innerHeight / 2;
+      
+      let currentVisiblePage = 0;
+      images.forEach((img, index) => {
+        const rect = img.getBoundingClientRect();
+        const imageTop = window.scrollY + rect.top;
+        const imageBottom = imageTop + rect.height;
+        
+        if (imageTop <= viewportCenter && imageBottom >= viewportCenter) {
+          currentVisiblePage = index;
+        }
+      });
+
+      if (currentVisiblePage !== currentPage) {
+        setCurrentPage(currentVisiblePage);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [readerSettings.readingMode, currentChapter, currentPage]);
 
   if (isLoading || !manga || !currentChapter) {
     return (
