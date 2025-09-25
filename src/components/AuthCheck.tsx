@@ -1,6 +1,5 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoadingTransition } from '@/components/LoadingTransition';
 
 interface AuthCheckProps {
   children: React.ReactNode;
@@ -11,15 +10,14 @@ export const AuthCheck: React.FC<AuthCheckProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <LoadingTransition isLoading={true} delay={0}>
-        <div />
-      </LoadingTransition>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
     );
   }
 
-  return (
-    <div className="animate-fade-in">
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 };
