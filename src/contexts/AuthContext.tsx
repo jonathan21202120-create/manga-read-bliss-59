@@ -61,14 +61,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         if (session?.user) {
-          // Fetch profile immediately
-          fetchUserProfile(session.user.id).then(profile => {
+          // Defer profile fetching to avoid blocking auth state updates
+          setTimeout(() => {
             if (mounted) {
-              console.log('Setting user with profile:', { user: session.user.id, profile: !!profile });
-              setUser({ ...session.user, profile: profile || undefined });
-              setIsLoading(false);
+              fetchUserProfile(session.user.id).then(profile => {
+                if (mounted) {
+                  console.log('Setting user with profile:', { user: session.user.id, profile: !!profile });
+                  setUser({ ...session.user, profile: profile || undefined });
+                  setIsLoading(false);
+                }
+              });
             }
-          });
+          }, 0);
         } else {
           setUser(null);
           setIsLoading(false);
@@ -128,8 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
       
@@ -145,7 +149,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         throw error;
       }
-      // User state will be updated by the auth state listener
+      
+      // Don't set loading to false here - let the auth state listener handle it
+      console.log('Login successful:', data.user?.email);
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -155,23 +161,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        throw new Error('Formato de email inválido.');
-      }
-      
       if (password.length < 6) {
         throw new Error('A senha deve ter pelo menos 6 caracteres.');
       }
       
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             name: name,
           },
@@ -182,18 +179,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         // Provide more user-friendly error messages
         if (error.message.includes('Email address')) {
-          throw new Error('Este formato de email não é aceito. Tente usar um email diferente (ex: gmail.com, outlook.com).');
+          throw new Error('Este formato de email não é válido. Tente um email diferente.');
         } else if (error.message.includes('Password')) {
           throw new Error('A senha deve ter pelo menos 6 caracteres.');
-        } else if (error.message.includes('already registered')) {
+        } else if (error.message.includes('already registered') || error.message.includes('User already registered')) {
           throw new Error('Este email já está cadastrado. Tente fazer login.');
         }
         throw error;
       }
       
-      // Show success message for email confirmation
-      setIsLoading(false);
+      // If user is created but needs confirmation, still show success
+      if (data.user && !data.session) {
+        setIsLoading(false);
+        throw new Error('Cadastro realizado! Verifique seu email para confirmar a conta.');
+      }
+      
       // User state will be updated by the auth state listener
+      setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
       throw error;

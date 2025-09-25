@@ -35,12 +35,23 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
         title: "Cadastro realizado com sucesso!",
         description: "Conta criada! Você pode fazer login imediatamente.",
       });
+      // Switch to login mode after successful registration
+      onToggleMode();
     } catch (error) {
       toast({
         title: "Erro no cadastro",
         description: error instanceof Error ? error.message : "Tente novamente",
         variant: "destructive",
       });
+      
+      // If it's just an email confirmation message, treat as success
+      if (error instanceof Error && error.message.includes('Verifique seu email')) {
+        toast({
+          title: "Cadastro realizado!",
+          description: error.message,
+        });
+        onToggleMode();
+      }
     }
   };
 
