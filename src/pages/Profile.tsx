@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ProfileSkeleton, ReadingHistorySkeleton } from "@/components/ProfileSkeleton";
 import { ProfileEditForm } from "@/components/ProfileEditForm";
 import { ClearHistoryDialog } from "@/components/ClearHistoryDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   User, 
   BookOpen, 
@@ -23,18 +24,19 @@ import {
 } from "lucide-react";
 
 export default function Profile() {
-  const { user } = useAuth();
-  const { progress, isLoading, fetchProgress } = useReadingProgress();
+  const { user, isLoading: authLoading } = useAuth();
+  const { progress, isLoading: progressLoading, fetchProgress } = useReadingProgress();
   const navigate = useNavigate();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   
-  // Refresh progress when user comes back to profile
+  // Refresh progress when user comes back to profile (only once)
   useEffect(() => {
-    if (user) {
-      fetchProgress();
+    if (user && initialLoad) {
+      fetchProgress().finally(() => setInitialLoad(false));
     }
-  }, [user, fetchProgress]);
+  }, [user?.id]); // Only depend on user.id to avoid unnecessary calls
 
   // Listen for custom refresh event from ClearHistoryDialog
   useEffect(() => {
@@ -50,14 +52,14 @@ export default function Profile() {
     navigate(`/manga/${mangaId}/chapter/${chapterId}?page=${page}`);
   };
   
-  // Calculate stats from real reading progress
-  const stats = {
+  // Calculate stats from real reading progress - memoized for performance
+  const stats = useMemo(() => ({
     totalMangas: new Set(progress.map(p => p.mangaId)).size,
     totalChapters: progress.length,
     completedChapters: progress.filter(p => p.isCompleted).length,
     favoriteCount: 0, // TODO: Get from favorites table
     averageRating: 0, // TODO: Calculate from ratings
-  };
+  }), [progress]);
 
   // Mock additional data that will come from Supabase later  
   const userData = {
@@ -74,11 +76,17 @@ export default function Profile() {
     }
   };
 
+  const isLoading = authLoading || (initialLoad && progressLoading);
+
+  if (isLoading) {
+    return <ProfileSkeleton />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-surface">
       <Navigation />
       
-      <main className="container mx-auto px-6 py-12 space-y-8">
+      <main className="container mx-auto px-6 py-12 space-y-8 animate-fade-in">
         {/* Cabeçalho do perfil */}
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="p-8">
@@ -228,10 +236,8 @@ export default function Profile() {
             <CardTitle className="text-manga-text-primary">Histórico de Leitura</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8 text-manga-text-secondary">
-                Carregando histórico...
-              </div>
+            {progressLoading ? (
+              <ReadingHistorySkeleton />
             ) : progress.length > 0 ? (
               <div className="space-y-4">
                 {progress.map((item, index) => (
