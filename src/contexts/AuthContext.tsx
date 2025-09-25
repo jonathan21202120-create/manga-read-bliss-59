@@ -141,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         // Provide more user-friendly error messages
         if (error.message.includes('Email not confirmed')) {
-          throw new Error('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
+          throw new Error('Email ou senha incorretos. Verifique suas credenciais.');
         } else if (error.message.includes('Invalid login credentials')) {
           throw new Error('Email ou senha incorretos. Verifique suas credenciais.');
         } else if (error.message.includes('Email address')) {
@@ -169,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: email.trim(),
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name: name,
           },
@@ -186,12 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('Este email já está cadastrado. Tente fazer login.');
         }
         throw error;
-      }
-      
-      // If user is created but needs confirmation, still show success
-      if (data.user && !data.session) {
-        setIsLoading(false);
-        throw new Error('Cadastro realizado! Verifique seu email para confirmar a conta.');
       }
       
       // User state will be updated by the auth state listener
