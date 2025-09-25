@@ -69,23 +69,23 @@ export const useReadingProgress = () => {
   ) => {
     if (!user) return;
 
-    console.log('Updating reading progress:', { mangaId, chapterId, currentPage, isCompleted, userId: user.id });
-
     try {
-      const { error } = await supabase.rpc('update_reading_progress', {
-        p_user_id: user.id,
-        p_manga_id: mangaId,
-        p_chapter_id: chapterId,
-        p_current_page: currentPage,
-        p_is_completed: isCompleted
-      });
+      // Insert directly into reading_progress table instead of using RPC
+      const { error } = await supabase
+        .from('reading_progress')
+        .upsert({
+          user_id: user.id,
+          manga_id: mangaId,
+          chapter_id: chapterId,
+          current_page: currentPage,
+          is_completed: isCompleted,
+          last_read_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,manga_id,chapter_id'
+        });
 
-      if (error) {
-        console.error('Supabase RPC error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Reading progress updated successfully');
       // Refresh progress data
       await fetchProgress();
     } catch (error: any) {
