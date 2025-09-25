@@ -443,20 +443,21 @@ const MangaReader = () => {
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between text-sm text-manga-text-secondary mb-2">
-            {readerSettings.showPageNumbers && (
-              <span>Página {currentPage + 1} de {currentChapter.pages.length}</span>
-            )}
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className="w-full bg-manga-surface-elevated rounded-full h-2">
-            <div
-              className="bg-gradient-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+      </div>
+
+      {/* Progress Bar - Always Visible */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-manga-surface/80 to-transparent">
+        <div className="flex items-center justify-between text-sm text-manga-text-secondary p-4 pb-2">
+          {readerSettings.showPageNumbers && (
+            <span>Página {currentPage + 1} de {currentChapter.pages.length}</span>
+          )}
+          <span>{Math.round(progress)}%</span>
+        </div>
+        <div className="w-full bg-manga-surface-elevated/30 h-1">
+          <div
+            className="bg-gradient-primary h-1 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
 
