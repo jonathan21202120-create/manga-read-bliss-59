@@ -7,8 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { ProfileEditForm } from "@/components/ProfileEditForm";
 import { ClearHistoryDialog } from "@/components/ClearHistoryDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   User, 
   BookOpen, 
@@ -23,15 +24,25 @@ import {
 
 export default function Profile() {
   const { user } = useAuth();
+  const { progress, isLoading } = useReadingProgress();
   const navigate = useNavigate();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
   
-  const handleContinueReading = (mangaId: number, chapterId: number, page: number) => {
+  const handleContinueReading = (mangaId: string, chapterId: string, page: number) => {
     navigate(`/manga/${mangaId}/chapter/${chapterId}?page=${page}`);
   };
   
-  // Mock additional data that will come from Supabase later
+  // Calculate stats from real reading progress
+  const stats = {
+    totalMangas: new Set(progress.map(p => p.mangaId)).size,
+    totalChapters: progress.length,
+    completedChapters: progress.filter(p => p.isCompleted).length,
+    favoriteCount: 0, // TODO: Get from favorites table
+    averageRating: 0, // TODO: Calculate from ratings
+  };
+
+  // Mock additional data that will come from Supabase later  
   const userData = {
     joinDate: "Janeiro 2024",
     readingStreak: 15,
@@ -40,41 +51,9 @@ export default function Profile() {
       { name: "Maratonista", icon: "🏃", description: "Leu 100 capítulos em uma semana" },
       { name: "Crítico", icon: "⭐", description: "Avaliou 20 mangás" },
     ],
-    readingHistory: [
-      { 
-        mangaId: 1,
-        mangaTitle: "Guerra dos Guerreiros", 
-        coverImage: "/src/assets/manga-cover-1.jpg",
-        currentChapter: 45, 
-        totalChapters: 120,
-        currentPage: 12,
-        lastRead: "2 horas atrás",
-        progress: 37.5
-      },
-      { 
-        mangaId: 2,
-        mangaTitle: "Guardiã Mística", 
-        coverImage: "/src/assets/manga-cover-2.jpg",
-        currentChapter: 23, 
-        totalChapters: 50,
-        currentPage: 8,
-        lastRead: "1 dia atrás",
-        progress: 46
-      },
-      { 
-        mangaId: 3,
-        mangaTitle: "Cyber Ninja", 
-        coverImage: "/src/assets/manga-cover-3.jpg",
-        currentChapter: 89, 
-        totalChapters: 89,
-        currentPage: 15,
-        lastRead: "3 dias atrás",
-        progress: 100
-      },
-    ],
     readingGoals: {
-      monthly: { current: 8, target: 10 },
-      yearly: { current: 45, target: 100 }
+      monthly: { current: stats.completedChapters, target: 10 },
+      yearly: { current: stats.totalMangas, target: 100 }
     }
   };
 
@@ -134,7 +113,7 @@ export default function Profile() {
           <Card className="bg-manga-surface-elevated border-border/50">
             <CardContent className="p-4 text-center">
               <BookOpen className="h-8 w-8 text-manga-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold text-manga-text-primary">0</p>
+              <p className="text-2xl font-bold text-manga-text-primary">{stats.totalMangas}</p>
               <p className="text-sm text-manga-text-secondary">Mangás Lidos</p>
             </CardContent>
           </Card>
@@ -142,7 +121,7 @@ export default function Profile() {
           <Card className="bg-manga-surface-elevated border-border/50">
             <CardContent className="p-4 text-center">
               <Heart className="h-8 w-8 text-red-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-manga-text-primary">0</p>
+              <p className="text-2xl font-bold text-manga-text-primary">{stats.favoriteCount}</p>
               <p className="text-sm text-manga-text-secondary">Favoritos</p>
             </CardContent>
           </Card>
@@ -150,7 +129,7 @@ export default function Profile() {
           <Card className="bg-manga-surface-elevated border-border/50">
             <CardContent className="p-4 text-center">
               <Star className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-manga-text-primary">0</p>
+              <p className="text-2xl font-bold text-manga-text-primary">{stats.averageRating.toFixed(1)}</p>
               <p className="text-sm text-manga-text-secondary">Avaliação Média</p>
             </CardContent>
           </Card>
@@ -158,7 +137,7 @@ export default function Profile() {
           <Card className="bg-manga-surface-elevated border-border/50">
             <CardContent className="p-4 text-center">
               <Clock className="h-8 w-8 text-manga-secondary mx-auto mb-2" />
-              <p className="text-2xl font-bold text-manga-text-primary">0</p>
+              <p className="text-2xl font-bold text-manga-text-primary">{stats.totalChapters}</p>
               <p className="text-sm text-manga-text-secondary">Capítulos</p>
             </CardContent>
           </Card>
@@ -232,42 +211,58 @@ export default function Profile() {
             <CardTitle className="text-manga-text-primary">Histórico de Leitura</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {userData.readingHistory.map((history, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 bg-manga-surface rounded-lg hover:bg-manga-surface-elevated transition-colors">
-                  <img 
-                    src={history.coverImage} 
-                    alt={history.mangaTitle}
-                    className="w-16 h-20 object-cover rounded-md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-manga-text-primary truncate">{history.mangaTitle}</h4>
-                    <p className="text-sm text-manga-text-secondary">
-                      Capítulo {history.currentChapter}/{history.totalChapters} • Página {history.currentPage}
-                    </p>
-                    <p className="text-xs text-manga-text-secondary mt-1">{history.lastRead}</p>
-                    <div className="mt-2">
-                      <Progress value={history.progress} className="h-1.5" />
+            {isLoading ? (
+              <div className="text-center py-8 text-manga-text-secondary">
+                Carregando histórico...
+              </div>
+            ) : progress.length > 0 ? (
+              <div className="space-y-4">
+                {progress.map((item, index) => (
+                  <div key={index} className="flex items-center gap-4 p-4 bg-manga-surface rounded-lg hover:bg-manga-surface-elevated transition-colors">
+                    <img 
+                      src={item.mangaCoverUrl || "/placeholder.svg"} 
+                      alt={item.mangaTitle}
+                      className="w-16 h-20 object-cover rounded-md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-manga-text-primary truncate">{item.mangaTitle}</h4>
+                      <p className="text-sm text-manga-text-secondary">
+                        Capítulo {item.chapterNumber}: {item.chapterTitle}
+                      </p>
+                      <p className="text-sm text-manga-text-secondary">
+                        Página {item.currentPage} de {item.totalPages}
+                      </p>
+                      <p className="text-xs text-manga-text-secondary mt-1">
+                        {new Date(item.lastReadAt).toLocaleDateString('pt-BR')} às {new Date(item.lastReadAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <div className="mt-2">
+                        <Progress value={item.progressPercentage} className="h-1.5" />
+                        <p className="text-xs text-manga-text-secondary mt-1">{item.progressPercentage.toFixed(1)}%</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {item.isCompleted ? (
+                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                          Completo
+                        </Badge>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="manga"
+                          onClick={() => handleContinueReading(item.mangaId, item.chapterId, item.currentPage)}
+                        >
+                          Continuar
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    {history.progress < 100 ? (
-                      <Button 
-                        size="sm" 
-                        variant="manga"
-                        onClick={() => handleContinueReading(history.mangaId, history.currentChapter, history.currentPage)}
-                      >
-                        Continuar
-                      </Button>
-                    ) : (
-                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
-                        Completo
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-manga-text-secondary">
+                Nenhum histórico de leitura encontrado. Comece a ler um mangá!
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

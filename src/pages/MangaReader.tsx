@@ -38,7 +38,7 @@ const MangaReader = () => {
   const { id, chapterId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { updateProgress } = useReadingProgress();
+  const { updateProgress, getLastReadChapter } = useReadingProgress();
   const { user } = useAuth();
   const [manga, setManga] = useState<Manga | null>(null);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
@@ -128,7 +128,7 @@ const MangaReader = () => {
         if (chapter) {
           setCurrentChapter(chapter);
           
-          // Check URL parameter for page
+          // Check URL parameter for page first, then check saved progress
           const urlParams = new URLSearchParams(window.location.search);
           const pageParam = urlParams.get('page');
           if (pageParam) {
@@ -137,6 +137,7 @@ const MangaReader = () => {
               setCurrentPage(pageNum);
             }
           }
+          // If no URL parameter and user is logged in, we'll check saved progress after the hook initializes
         } else {
           // Redirect to first chapter if current chapter not found
           navigate(`/manga/${id}/chapter/${chapters[0]?.id}`, { replace: true });
@@ -176,6 +177,21 @@ const MangaReader = () => {
 
     fetchMangaData();
   }, [id, chapterId, navigate]);
+
+  // Check for saved reading progress when component mounts and user/chapter changes
+  useEffect(() => {
+    if (user && id && chapterId && currentChapter && !window.location.search.includes('page=')) {
+      const savedProgress = getLastReadChapter(id);
+      if (savedProgress && savedProgress.chapterId === chapterId) {
+        // Continue from where the user left off
+        setCurrentPage(savedProgress.currentPage - 1); // Convert to 0-based index
+        toast({
+          title: "Progresso restaurado",
+          description: `Continuando da página ${savedProgress.currentPage}`,
+        });
+      }
+    }
+  }, [user, id, chapterId, currentChapter, getLastReadChapter, toast]);
 
   // Auto-hide controls
   useEffect(() => {
