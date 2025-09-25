@@ -69,6 +69,8 @@ export const useReadingProgress = () => {
   ) => {
     if (!user) return;
 
+    console.log('Updating reading progress:', { mangaId, chapterId, currentPage, isCompleted, userId: user.id });
+
     try {
       const { error } = await supabase.rpc('update_reading_progress', {
         p_user_id: user.id,
@@ -78,8 +80,12 @@ export const useReadingProgress = () => {
         p_is_completed: isCompleted
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        throw error;
+      }
 
+      console.log('Reading progress updated successfully');
       // Refresh progress data
       await fetchProgress();
     } catch (error: any) {
