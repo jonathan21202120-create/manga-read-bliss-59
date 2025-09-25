@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { TrendingUp, Clock, Star, Filter, Search } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { TrendingUp, Clock, Star, Filter, Search, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import mangaCover1 from "@/assets/manga-cover-1.jpg";
 import mangaCover2 from "@/assets/manga-cover-2.jpg";
@@ -15,6 +16,7 @@ import mangaCover3 from "@/assets/manga-cover-3.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("trending");
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +24,7 @@ const Index = () => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [mangaData, setMangaData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAdultContent, setShowAdultContent] = useState(false);
   const { toast } = useToast();
 
   // Fetch manga data from Supabase
@@ -36,23 +39,36 @@ const Index = () => {
         
         if (error) throw error;
         
-        // Transform data to match expected format
-        const transformedMangas = data?.map(manga => ({
-          id: manga.id,
-          title: manga.title,
-          cover: manga.cover_url,
-          rating: manga.rating,
-          chapters: 100, // Default for now
-          status: manga.status,
-          genre: manga.genre,
-          description: manga.description,
-          isFavorite: favorites.includes(manga.id),
-          readCount: manga.total_reads
-        })) || [];
+        // Transform data to match expected format and get real chapter count
+        const transformedMangas = [];
+        
+        for (const manga of data || []) {
+          // Get real chapter count
+          const { data: chaptersData } = await supabase
+            .from('chapters')
+            .select('id')
+            .eq('manga_id', manga.id);
+          
+          transformedMangas.push({
+            id: manga.id,
+            title: manga.title,
+            cover: manga.cover_url,
+            rating: manga.rating,
+            chapters: chaptersData?.length || 0, // Real chapter count
+            status: manga.status,
+            genre: manga.genre,
+            description: manga.description,
+            isFavorite: favorites.includes(manga.id),
+            readCount: manga.total_reads,
+            adultContent: manga.adult_content
+          });
+        }
         
         setMangaData(transformedMangas);
       } catch (error) {
         console.error('Error fetching mangas:', error);
+        // Use backup data only if Supabase fails completely
+        setMangaData(backupMangaData);
       } finally {
         setIsLoading(false);
       }
@@ -142,6 +158,7 @@ const Index = () => {
     { id: "trending", label: "Em Alta", icon: TrendingUp },
     { id: "recent", label: "Recentes", icon: Clock },
     { id: "top", label: "Top Rated", icon: Star },
+    ...(user?.profile?.conteudo_adulto ? [{ id: "adult", label: "Conteúdo +18", icon: Shield }] : [])
   ];
 
   // Top 10 mais lidos
@@ -164,6 +181,8 @@ const Index = () => {
       filtered = [...filtered].sort((a, b) => b.chapters - a.chapters);
     } else if (selectedCategory === "top") {
       filtered = [...filtered].sort((a, b) => b.rating - a.rating);
+    } else if (selectedCategory === "adult") {
+      filtered = filtered.filter(manga => manga.adultContent === true);
     }
 
     // Filtro por busca
@@ -182,8 +201,13 @@ const Index = () => {
       );
     }
 
+    // Filtro de conteúdo adulto (se não estiver na aba +18 e usuário não tem permissão)
+    if (selectedCategory !== "adult" && !user?.profile?.conteudo_adulto) {
+      filtered = filtered.filter(manga => !manga.adultContent);
+    }
+
     return filtered;
-  }, [searchTerm, selectedCategory, selectedGenres]);
+  }, [searchTerm, selectedCategory, selectedGenres, mangaData, user?.profile?.conteudo_adulto]);
 
   // Obter todos os gêneros únicos
   const allGenres = useMemo(() => {

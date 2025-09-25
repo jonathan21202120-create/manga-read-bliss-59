@@ -20,6 +20,8 @@ import {
   MessageCircle,
   Send
 } from "lucide-react";
+import { CommentItem } from "@/components/CommentItem";
+import { Checkbox as CheckboxUI } from "@/components/ui/checkbox";
 
 interface Chapter {
   id: string;
@@ -33,9 +35,11 @@ interface Chapter {
 interface Comment {
   id: string;
   user: string;
+  userAvatar?: string;
   content: string;
   date: string;
   likes: number;
+  isSpoiler?: boolean;
 }
 
 interface Manga {
@@ -65,6 +69,7 @@ const MangaDetails = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [lastReadChapter, setLastReadChapter] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSpoilerComment, setIsSpoilerComment] = useState(false);
 
   // Fetch manga data from Supabase
   useEffect(() => {
@@ -149,7 +154,8 @@ const MangaDetails = () => {
             content,
             likes,
             created_at,
-            profiles!inner(name)
+            user_id,
+            profiles!inner(nome, avatar_url)
           `)
           .eq('manga_id', id)
           .order('created_at', { ascending: false });
@@ -157,10 +163,12 @@ const MangaDetails = () => {
         if (commentsData) {
           const transformedComments: Comment[] = commentsData.map((comment: any) => ({
             id: comment.id,
-            user: comment.profiles?.name || 'Usuário',
+            user: comment.profiles?.nome || 'Usuário',
+            userAvatar: comment.profiles?.avatar_url,
             content: comment.content,
             date: new Date(comment.created_at).toLocaleDateString(),
-            likes: comment.likes
+            likes: comment.likes,
+            isSpoiler: comment.content.toLowerCase().includes('spoiler') || comment.content.includes('🔍')
           }));
           setComments(transformedComments);
         }
@@ -258,7 +266,7 @@ const MangaDetails = () => {
           id,
           content,
           created_at,
-          profiles!inner(name)
+          profiles!inner(nome, avatar_url)
         `)
         .single();
       
@@ -267,13 +275,16 @@ const MangaDetails = () => {
       const newCommentObj: Comment = {
         id: data.id,
         user: (data as any).profiles?.nome || user.profile?.nome || 'Usuário',
+        userAvatar: (data as any).profiles?.avatar_url || user.profile?.avatar_url,
         content: data.content,
         date: new Date(data.created_at).toLocaleDateString(),
-        likes: 0
+        likes: 0,
+        isSpoiler: isSpoilerComment
       };
       
       setComments([newCommentObj, ...comments]);
       setNewComment("");
+      setIsSpoilerComment(false);
       toast({
         title: "Comentário enviado!",
         description: "Seu comentário foi adicionado com sucesso.",
@@ -476,6 +487,16 @@ const MangaDetails = () => {
                   className="bg-manga-surface border-border/50 focus:border-manga-primary"
                   rows={3}
                 />
+                <div className="flex items-center space-x-2">
+                  <CheckboxUI 
+                    id="spoiler" 
+                    checked={isSpoilerComment}
+                    onCheckedChange={(checked) => setIsSpoilerComment(checked as boolean)}
+                  />
+                  <label htmlFor="spoiler" className="text-sm text-manga-text-secondary cursor-pointer">
+                    Marcar como spoiler
+                  </label>
+                </div>
                 <Button 
                   onClick={handleCommentSubmit}
                   disabled={!newComment.trim()}
@@ -491,21 +512,16 @@ const MangaDetails = () => {
           {/* Comments List */}
           <div className="space-y-4">
             {comments.map((comment) => (
-              <Card key={comment.id} className="bg-manga-surface-elevated border-border/50">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="font-medium text-manga-text-primary">{comment.user}</div>
-                    <div className="text-sm text-manga-text-secondary">{comment.date}</div>
-                  </div>
-                  <p className="text-manga-text-secondary mb-3">{comment.content}</p>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="manga-ghost" className="text-manga-text-muted">
-                      <Heart className="h-4 w-4 mr-1" />
-                      {comment.likes}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <CommentItem
+                key={comment.id}
+                id={comment.id}
+                user={comment.user}
+                userAvatar={comment.userAvatar}
+                content={comment.content}
+                date={comment.date}
+                likes={comment.likes}
+                isSpoiler={comment.isSpoiler}
+              />
             ))}
           </div>
         </section>

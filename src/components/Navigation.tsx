@@ -98,12 +98,14 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback className="bg-manga-primary text-primary-foreground text-sm">
-                {user?.profile?.nome?.split(' ').map(n => n[0]).join('') || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <Link to="/profile">
+              <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-manga-primary transition-all">
+                <AvatarImage src={user?.profile?.avatar_url || "/placeholder.svg"} />
+                <AvatarFallback className="bg-manga-primary text-primary-foreground text-sm">
+                  {user?.profile?.nome?.split(' ').map(n => n[0]).join('') || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
             <Button size="icon" variant="manga-ghost" onClick={handleLogout} title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
