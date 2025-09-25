@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,7 @@ export const useReadingProgress = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchProgress = async () => {
+  const fetchProgress = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -59,9 +59,9 @@ export const useReadingProgress = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
-  const updateProgress = async (
+  const updateProgress = useCallback(async (
     mangaId: string,
     chapterId: string,
     currentPage: number = 1,
@@ -96,7 +96,7 @@ export const useReadingProgress = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [user, fetchProgress, toast]);
 
   const getLastReadChapter = (mangaId: string): ReadingProgress | null => {
     return progress.find(p => p.mangaId === mangaId) || null;
@@ -114,7 +114,7 @@ export const useReadingProgress = () => {
     if (user) {
       fetchProgress();
     }
-  }, [user]);
+  }, [user, fetchProgress]);
 
   return {
     progress,

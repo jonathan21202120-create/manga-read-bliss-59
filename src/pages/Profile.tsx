@@ -9,7 +9,7 @@ import { ClearHistoryDialog } from "@/components/ClearHistoryDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   User, 
   BookOpen, 
@@ -34,7 +34,7 @@ export default function Profile() {
     if (user) {
       fetchProgress();
     }
-  }, [user, fetchProgress]);
+  }, [user]);
 
   // Listen for custom refresh event from ClearHistoryDialog
   useEffect(() => {
@@ -44,20 +44,20 @@ export default function Profile() {
 
     window.addEventListener('refreshProgress', handleRefreshProgress);
     return () => window.removeEventListener('refreshProgress', handleRefreshProgress);
-  }, [fetchProgress]);
+  }, []);
   
   const handleContinueReading = (mangaId: string, chapterId: string, page: number) => {
     navigate(`/manga/${mangaId}/chapter/${chapterId}?page=${page}`);
   };
   
   // Calculate stats from real reading progress
-  const stats = {
+  const stats = useMemo(() => ({
     totalMangas: new Set(progress.map(p => p.mangaId)).size,
     totalChapters: progress.length,
     completedChapters: progress.filter(p => p.isCompleted).length,
     favoriteCount: 0, // TODO: Get from favorites table
     averageRating: 0, // TODO: Calculate from ratings
-  };
+  }), [progress]);
 
   // Mock additional data that will come from Supabase later  
   const userData = {
