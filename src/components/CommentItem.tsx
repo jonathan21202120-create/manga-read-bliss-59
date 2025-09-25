@@ -18,6 +18,7 @@ export function CommentItem({ id, user, userAvatar, content, date, likes, isSpoi
   const [isRevealed, setIsRevealed] = useState(!isSpoiler);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(likes);
+  const [isHidden, setIsHidden] = useState(false);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -27,6 +28,15 @@ export function CommentItem({ id, user, userAvatar, content, date, likes, isSpoi
   const toggleSpoiler = () => {
     setIsRevealed(!isRevealed);
   };
+
+  const toggleHidden = () => {
+    setIsHidden(!isHidden);
+  };
+
+  // Don't render if comment is hidden
+  if (isHidden) {
+    return null;
+  }
 
   return (
     <Card className="bg-manga-surface-elevated border-border/50">
@@ -88,6 +98,15 @@ export function CommentItem({ id, user, userAvatar, content, date, likes, isSpoi
               >
                 <Heart className={`h-4 w-4 mr-1 ${isLiked ? 'fill-current' : ''}`} />
                 {likesCount}
+              </Button>
+              <Button
+                size="sm"
+                variant="manga-ghost"
+                onClick={toggleHidden}
+                className="text-manga-text-muted hover:text-manga-text-secondary"
+              >
+                <EyeOff className="h-4 w-4 mr-1" />
+                Ocultar
               </Button>
             </div>
           </div>

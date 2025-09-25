@@ -24,10 +24,27 @@ import {
 
 export default function Profile() {
   const { user } = useAuth();
-  const { progress, isLoading } = useReadingProgress();
+  const { progress, isLoading, fetchProgress } = useReadingProgress();
   const navigate = useNavigate();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
+  
+  // Refresh progress when user comes back to profile
+  useEffect(() => {
+    if (user) {
+      fetchProgress();
+    }
+  }, [user, fetchProgress]);
+
+  // Listen for custom refresh event from ClearHistoryDialog
+  useEffect(() => {
+    const handleRefreshProgress = () => {
+      fetchProgress();
+    };
+
+    window.addEventListener('refreshProgress', handleRefreshProgress);
+    return () => window.removeEventListener('refreshProgress', handleRefreshProgress);
+  }, [fetchProgress]);
   
   const handleContinueReading = (mangaId: string, chapterId: string, page: number) => {
     navigate(`/manga/${mangaId}/chapter/${chapterId}?page=${page}`);

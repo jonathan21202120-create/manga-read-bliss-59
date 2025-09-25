@@ -193,6 +193,19 @@ const MangaReader = () => {
     }
   }, [user, id, chapterId, currentChapter, getLastReadChapter, toast]);
 
+  // Save progress automatically when page changes
+  useEffect(() => {
+    if (user && id && chapterId && currentChapter && currentPage >= 0) {
+      // Save progress automatically with a small delay to avoid too many calls
+      const timeoutId = setTimeout(() => {
+        const isLastPage = currentPage === currentChapter.pages.length - 1;
+        updateProgress(id, chapterId, currentPage + 1, isLastPage);
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user, id, chapterId, currentChapter, currentPage, updateProgress]);
+
   // Auto-hide controls
   useEffect(() => {
     const resetHideTimer = () => {
@@ -239,11 +252,6 @@ const MangaReader = () => {
       if (currentPage < currentChapter.pages.length - 1) {
         const newPage = currentPage + 1;
         setCurrentPage(newPage);
-        
-        // Save progress automatically
-        if (user && id && chapterId) {
-          updateProgress(id, chapterId, newPage + 1, false);
-        }
       } else {
       // Mark current chapter as completed
       if (user && id && chapterId) {
@@ -278,11 +286,6 @@ const MangaReader = () => {
     if (currentPage > 0) {
       const newPage = currentPage - 1;
       setCurrentPage(newPage);
-      
-      // Save progress automatically
-      if (user && id && chapterId) {
-        updateProgress(id, chapterId, newPage + 1, false);
-      }
     } else {
       // Capítulo anterior
       const currentIndex = getCurrentChapterIndex();

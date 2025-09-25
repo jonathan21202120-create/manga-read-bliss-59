@@ -146,7 +146,6 @@ const MangaDetails = () => {
           }
         }
         
-        // Fetch comments
         const { data: commentsData } = await supabase
           .from('comments')
           .select(`
@@ -154,7 +153,8 @@ const MangaDetails = () => {
             content,
             likes,
             created_at,
-            user_id
+            user_id,
+            is_spoiler
           `)
           .eq('manga_id', id)
           .order('created_at', { ascending: false });
@@ -176,7 +176,7 @@ const MangaDetails = () => {
               content: comment.content,
               date: new Date(comment.created_at).toLocaleDateString(),
               likes: comment.likes,
-              isSpoiler: comment.content.toLowerCase().includes('spoiler') || comment.content.includes('🔍')
+              isSpoiler: comment.is_spoiler
             };
           });
           setComments(transformedComments);
@@ -269,9 +269,10 @@ const MangaDetails = () => {
         .insert({
           user_id: user.id,
           manga_id: manga.id,
-          content: newComment.trim()
+          content: newComment.trim(),
+          is_spoiler: isSpoilerComment
         })
-        .select('id, content, created_at, user_id')
+        .select('id, content, created_at, user_id, is_spoiler')
         .single();
       
       if (error) throw error;
@@ -287,10 +288,10 @@ const MangaDetails = () => {
         id: data.id,
         user: profileData?.nome || user.profile?.nome || 'Usuário',
         userAvatar: profileData?.avatar_url || user.profile?.avatar_url,
-        content: isSpoilerComment ? `[SPOILER] ${data.content}` : data.content,
+        content: data.content,
         date: new Date(data.created_at).toLocaleDateString(),
         likes: 0,
-        isSpoiler: isSpoilerComment
+        isSpoiler: data.is_spoiler
       };
       
       setComments([newCommentObj, ...comments]);

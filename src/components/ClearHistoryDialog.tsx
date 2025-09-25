@@ -44,8 +44,15 @@ export const ClearHistoryDialog: React.FC<ClearHistoryDialogProps> = ({ open, on
       });
 
       onOpenChange(false);
-      // Recarrega a página para atualizar os dados
-      window.location.reload();
+      // Instead of reloading the page, just refetch the progress
+      if (window.location.pathname === '/profile') {
+        // Assuming we can access the fetchProgress function from the Profile component
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('refreshProgress'));
+        }, 500);
+      } else {
+        window.location.reload();
+      }
     } catch (error) {
       console.error('Erro ao limpar histórico:', error);
       toast({

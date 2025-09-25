@@ -63,6 +63,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_spoiler: boolean | null
           likes: number
           manga_id: string
           updated_at: string
@@ -72,6 +73,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_spoiler?: boolean | null
           likes?: number
           manga_id: string
           updated_at?: string
@@ -81,6 +83,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_spoiler?: boolean | null
           likes?: number
           manga_id?: string
           updated_at?: string
