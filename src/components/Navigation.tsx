@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { TopMangaDropdown } from "@/components/TopMangaDropdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/hooks/use-toast";
 import { 
   Search, 
   Home, 
@@ -25,6 +26,22 @@ interface NavigationProps {
 export function Navigation({ topMangas = [], onRead }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout, isAdmin } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logout realizado com sucesso!",
+        description: "Até a próxima!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no logout",
+        description: error instanceof Error ? error.message : "Tente novamente",
+        variant: "destructive",
+      });
+    }
+  };
 
   const baseNavItems = [
     { icon: Home, label: "Início", href: "/" },
@@ -87,7 +104,7 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
                 {user?.profile?.nome?.split(' ').map(n => n[0]).join('') || 'U'}
               </AvatarFallback>
             </Avatar>
-            <Button size="icon" variant="manga-ghost" onClick={logout}>
+            <Button size="icon" variant="manga-ghost" onClick={handleLogout} title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
@@ -146,6 +163,19 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
                   </Button>
                 </Link>
               ))}
+              
+              {/* Logout Button for Mobile */}
+              <Button
+                variant="manga-ghost"
+                className="w-full justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <LogOut className="h-5 w-5" />
+                Sair
+              </Button>
             </div>
           </div>
         </div>

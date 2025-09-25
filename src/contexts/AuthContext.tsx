@@ -133,27 +133,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log('Iniciando login para:', email.trim());
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
       
       if (error) {
+        console.error('Erro no login:', error);
         setIsLoading(false);
-        // Provide more user-friendly error messages
+        
+        // Mensagens de erro específicas e claras
         if (error.message.includes('Email not confirmed')) {
-          throw new Error('Email ou senha incorretos. Verifique suas credenciais.');
+          throw new Error('Email não confirmado. Verifique sua caixa de entrada e confirme seu email.');
         } else if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Email ou senha incorretos. Verifique suas credenciais.');
+          throw new Error('Email ou senha incorretos. Verifique suas credenciais e tente novamente.');
         } else if (error.message.includes('Email address')) {
-          throw new Error('Formato de email inválido.');
+          throw new Error('Formato de email inválido. Digite um email válido.');
+        } else if (error.message.includes('Too many requests')) {
+          throw new Error('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
+        } else if (error.message.includes('User not found')) {
+          throw new Error('Usuário não encontrado. Verifique o email ou cadastre-se.');
         }
-        throw error;
+        
+        // Erro genérico para casos não tratados
+        throw new Error('Erro no login. Verifique suas credenciais e tente novamente.');
       }
       
-      // Don't set loading to false here - let the auth state listener handle it
-      console.log('Login successful:', data.user?.email);
+      if (data.user) {
+        console.log('Login realizado com sucesso:', data.user.email);
+        console.log('Token JWT salvo automaticamente pelo Supabase');
+      }
+      
+      // O loading será definido como false pelo listener de mudança de estado
     } catch (error) {
+      console.error('Erro capturado no login:', error);
       setIsLoading(false);
       throw error;
     }
@@ -199,8 +214,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      console.log('Iniciando logout...');
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Erro no logout:', error);
+        throw new Error('Erro ao fazer logout. Tente novamente.');
+      }
+      
+      console.log('Logout realizado com sucesso - token removido');
+      // O estado será atualizado pelo listener de mudança de estado
+    } catch (error) {
+      console.error('Erro no logout:', error);
+      setIsLoading(false);
+      throw error;
+    }
   };
 
   const isAdmin = () => {

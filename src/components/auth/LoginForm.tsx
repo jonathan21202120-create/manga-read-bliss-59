@@ -17,10 +17,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação dos campos
     if (!email.trim() || !password) {
       toast({
-        title: "Erro no login",
-        description: "Por favor, preencha todos os campos",
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha email e senha",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validação básica do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast({
+        title: "Email inválido",
+        description: "Digite um email válido",
         variant: "destructive",
       });
       return;
@@ -30,12 +43,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
       await login(email, password);
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta!",
+        description: "Bem-vindo de volta! Redirecionando...",
       });
     } catch (error) {
       toast({
-        title: "Erro no login",
-        description: error instanceof Error ? error.message : "Tente novamente",
+        title: "Falha no login",
+        description: error instanceof Error ? error.message : "Erro desconhecido. Tente novamente.",
         variant: "destructive",
       });
     }
@@ -80,7 +93,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             className="w-full" 
             disabled={isLoading}
           >
-            {isLoading ? "Entrando..." : "Entrar"}
+            {isLoading ? "Autenticando..." : "Entrar"}
           </Button>
           <Button 
             type="button" 
