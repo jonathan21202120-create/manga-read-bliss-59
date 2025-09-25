@@ -33,7 +33,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
       await register(email, password, name);
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Verifique seu email para confirmar a conta antes de fazer login.",
+        description: "Conta criada! Você pode fazer login imediatamente.",
       });
     } catch (error) {
       toast({

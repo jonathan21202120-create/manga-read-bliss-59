@@ -64,11 +64,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
               required
             />
           </div>
-          <div className="text-sm text-muted-foreground text-center">
-            <p>Para testar o sistema:</p>
-            <p><strong>Email:</strong> admin@mangareadbliss.com</p>
-            <p><strong>Senha:</strong> admin123</p>
-          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button 
