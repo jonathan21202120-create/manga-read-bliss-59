@@ -7,8 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ReaderControls } from "@/components/ReaderControls";
-import ReaderSettings, { ReaderSettingsType } from "@/components/ReaderSettings";
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,33 +43,16 @@ const MangaReader = () => {
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [showControls, setShowControls] = useState(true);
-  const [zoom, setZoom] = useState(1); // Changed to decimal (1 = 100%)
+  const [zoom, setZoom] = useState(100);
   const [fitMode, setFitMode] = useState<"width" | "height" | "original">("width");
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Initialize from localStorage or system preference
     const saved = localStorage.getItem('reader-theme');
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [readerSettings, setReaderSettings] = useState<ReaderSettingsType>({
-    readingMode: "single", // Changed default to single page
-    readingDirection: "ltr",
-    pagefit: "width",
-    theme: "auto",
-    autoScroll: false,
-    scrollSpeed: 3,
-    imageQuality: "high",
-    transitionSpeed: 300,
-    showPageNumbers: true,
-    invertColors: false,
-    grayscale: false,
-    brightness: 100,
-    contrast: 100,
-  });
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Mock data para páginas (usando placeholders)
   const generateMockPages = (chapterNumber: number, pageCount: number = 20): string[] => {
@@ -107,7 +88,7 @@ const MangaReader = () => {
           id: ch.id,
           number: ch.chapter_number,
           title: ch.title,
-          pages: ch.pages_urls || generateMockPages(ch.chapter_number) // Fallback to mock if no pages
+          pages: ch.pages_urls || generateMockPages(ch.chapter_number)
         })) || [];
 
         // If no chapters found, generate mock data as fallback
@@ -146,7 +127,6 @@ const MangaReader = () => {
               setCurrentPage(pageNum);
             }
           }
-          // If no URL parameter and user is logged in, we'll check saved progress after the hook initializes
         } else {
           // Redirect to first chapter if current chapter not found
           navigate(`/manga/${id}/chapter/${chapters[0]?.id}`, { replace: true });
@@ -192,8 +172,7 @@ const MangaReader = () => {
     if (user && id && chapterId && currentChapter && !window.location.search.includes('page=')) {
       const savedProgress = getLastReadChapter(id);
       if (savedProgress && savedProgress.chapterId === chapterId) {
-        // Continue from where the user left off
-        setCurrentPage(savedProgress.currentPage - 1); // Convert to 0-based index
+        setCurrentPage(savedProgress.currentPage - 1);
         toast({
           title: "Progresso restaurado",
           description: `Continuando da página ${savedProgress.currentPage}`,
@@ -205,12 +184,11 @@ const MangaReader = () => {
   // Save progress automatically when page changes
   useEffect(() => {
     if (user && id && chapterId && currentChapter && currentPage >= 0) {
-      // Save progress automatically with a small delay to avoid too many calls
       const timeoutId = setTimeout(() => {
         updateProgress(
           id,
           chapterId,
-          currentPage + 1, // Convert to 1-based index
+          currentPage + 1,
           currentPage >= currentChapter.pages.length - 1
         );
       }, 1000);
@@ -277,63 +255,6 @@ const MangaReader = () => {
     localStorage.setItem('reader-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
-  // Auto-scroll for webtoon mode
-  useEffect(() => {
-    if (readerSettings.readingMode === "webtoon" && readerSettings.autoScroll && containerRef.current) {
-      const scrollSpeed = readerSettings.scrollSpeed;
-      const interval = setInterval(() => {
-        const container = containerRef.current;
-        if (container) {
-          const scrollAmount = scrollSpeed * 10;
-          container.scrollTop += scrollAmount;
-          
-          // Check if we've reached the end
-          if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
-            // Auto-advance to next chapter
-            const nextChapter = getNextChapter();
-            if (nextChapter) {
-              goToChapter(nextChapter.id);
-            }
-          }
-        }
-      }, 100);
-
-      return () => clearInterval(interval);
-    }
-  }, [readerSettings.readingMode, readerSettings.autoScroll, readerSettings.scrollSpeed]);
-
-  // Track current page in webtoon mode based on scroll
-  useEffect(() => {
-    if (readerSettings.readingMode === "webtoon" && currentChapter && containerRef.current) {
-      const container = containerRef.current;
-      
-      const handleScroll = () => {
-        if (!container || !currentChapter) return;
-        
-        const images = container.querySelectorAll('.webtoon-page');
-        let newCurrentPage = 0;
-        
-        // Find which page is most visible
-        images.forEach((img, index) => {
-          const rect = img.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          
-          // Check if the image is in the viewport
-          if (rect.top < containerRect.height / 2 && rect.bottom > containerRect.height / 2) {
-            newCurrentPage = index;
-          }
-        });
-        
-        if (newCurrentPage !== currentPage) {
-          setCurrentPage(newCurrentPage);
-        }
-      };
-
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, [readerSettings.readingMode, currentChapter, currentPage]);
-
   const getCurrentChapterIndex = () => {
     if (!manga || !currentChapter) return -1;
     return manga.chapters.findIndex(ch => ch.id === currentChapter.id);
@@ -387,32 +308,9 @@ const MangaReader = () => {
     }
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page - 1); // Convert from 1-based to 0-based
-  };
-
-  const handleChapterChange = (direction: "prev" | "next") => {
-    const chapter = direction === "prev" ? getPrevChapter() : getNextChapter();
-    if (chapter) {
-      goToChapter(chapter.id);
-    }
-  };
-
-  const handleZoomChange = (newZoom: number) => {
-    setZoom(newZoom);
-  };
-
-  const handleReadingModeChange = (mode: "single" | "double" | "webtoon") => {
-    setReaderSettings(prev => ({ ...prev, readingMode: mode }));
-  };
-
-  const handleFitModeChange = (mode: "width" | "height" | "original") => {
-    setFitMode(mode);
-  };
-
   const getImageStyle = () => {
     const baseStyle: React.CSSProperties = {
-      transform: `scale(${zoom})`,
+      transform: `scale(${zoom / 100})`,
       transformOrigin: 'center',
       transition: 'transform 0.2s ease-in-out'
     };
@@ -455,99 +353,191 @@ const MangaReader = () => {
   }
 
   return (
-    <div 
-      ref={containerRef}
-      className={`reader-container ${isDarkMode ? 'dark' : ''} bg-manga-surface min-h-screen overflow-auto`}
-    >
-      {/* Reader Controls */}
-      <ReaderControls
-        currentPage={currentPage + 1} // Convert to 1-based
-        totalPages={currentChapter.pages.length}
-        currentChapter={getCurrentChapterIndex() + 1}
-        totalChapters={manga?.chapters.length || 0}
-        zoom={zoom}
-        readingMode={readerSettings.readingMode}
-        isDarkMode={isDarkMode}
-        isFullscreen={isFullscreen}
-        fitMode={fitMode}
-        onPageChange={handlePageChange}
-        onChapterChange={handleChapterChange}
-        onZoomChange={handleZoomChange}
-        onReadingModeChange={handleReadingModeChange}
-        onDarkModeToggle={() => setIsDarkMode(!isDarkMode)}
-        onFullscreenToggle={toggleFullscreen}
-        onFitModeChange={handleFitModeChange}
-        onGoHome={() => navigate("/")}
-      />
+    <div className={`reader-container ${isDarkMode ? 'dark' : ''} bg-manga-surface min-h-screen`}>
+      {/* Top Controls */}
+      <div className={`fixed top-0 left-0 right-0 z-50 bg-manga-surface/90 backdrop-blur-sm border-b border-border/50 transition-transform duration-300 ${showControls ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => navigate("/")}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Início
+            </Button>
+            <Button
+              onClick={() => navigate(`/manga/${id}`)}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Capítulos
+            </Button>
+          </div>
 
-      {/* Main Content Area */}
-      <div className="pt-24 pb-20"> {/* Padding to account for fixed controls */}
-        {readerSettings.readingMode === "webtoon" ? (
-          // Webtoon Mode - Vertical scroll
-          <div className="max-w-4xl mx-auto space-y-2">
-            {currentChapter.pages.map((pageUrl, index) => (
-              <div key={index} className="webtoon-page">
-                <img
-                  src={pageUrl}
-                  alt={`Página ${index + 1}`}
-                  style={getImageStyle()}
-                  className="w-full h-auto block mx-auto"
-                  loading="lazy"
-                />
-              </div>
-            ))}
+          <div className="text-center">
+            <h1 className="text-lg font-bold text-manga-text-primary">{manga?.title}</h1>
+            <p className="text-sm text-manga-text-secondary">{currentChapter.title}</p>
           </div>
-        ) : readerSettings.readingMode === "double" ? (
-          // Double Page Mode
-          <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-            <div className="flex gap-4 max-w-full">
-              {currentPage > 0 && (
-                <img
-                  src={currentChapter.pages[currentPage - 1]}
-                  alt={`Página ${currentPage}`}
-                  style={getImageStyle()}
-                  className="max-h-[80vh] object-contain"
-                  loading="lazy"
-                />
-              )}
-              <img
-                src={currentChapter.pages[currentPage]}
-                alt={`Página ${currentPage + 1}`}
-                style={getImageStyle()}
-                className="max-h-[80vh] object-contain"
-                loading="lazy"
-              />
-            </div>
+
+          <div className="flex items-center gap-2">
+            <Select value={fitMode} onValueChange={(value: "width" | "height" | "original") => setFitMode(value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="width">Ajustar largura</SelectItem>
+                <SelectItem value="height">Ajustar altura</SelectItem>
+                <SelectItem value="original">Tamanho original</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={() => setZoom(Math.max(50, zoom - 25))}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            
+            <span className="text-sm text-manga-text-secondary min-w-[50px] text-center">
+              {zoom}%
+            </span>
+            
+            <Button
+              onClick={() => setZoom(Math.min(200, zoom + 25))}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+
+            <Button
+              onClick={() => setZoom(100)}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+
+            <Button
+              onClick={toggleFullscreen}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
+
+            <Button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary"
+            >
+              {isDarkMode ? '☀️' : '🌙'}
+            </Button>
           </div>
-        ) : (
-          // Single Page Mode
-          <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-            <img
-              src={currentChapter.pages[currentPage]}
-              alt={`Página ${currentPage + 1}`}
-              style={getImageStyle()}
-              className="max-h-[80vh] object-contain"
-              loading="lazy"
-            />
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Click Areas for Navigation - Only for single/double page modes */}
-      {readerSettings.readingMode !== "webtoon" && (
-        <>
-          <div 
-            className="fixed left-0 top-24 w-1/3 h-[calc(100vh-200px)] z-30 cursor-pointer"
-            onClick={goToPrevPage}
-            title="Página anterior"
+      {/* Main Content Area */}
+      <div className="pt-24 pb-20">
+        <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+          <img
+            src={currentChapter.pages[currentPage]}
+            alt={`Página ${currentPage + 1}`}
+            style={getImageStyle()}
+            className="max-h-[80vh] object-contain"
+            loading="lazy"
           />
-          <div 
-            className="fixed right-0 top-24 w-1/3 h-[calc(100vh-200px)] z-30 cursor-pointer"
-            onClick={goToNextPage}
-            title="Próxima página"
-          />
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Bottom Controls */}
+      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-manga-surface/90 backdrop-blur-sm border-t border-border/50 transition-transform duration-300 ${showControls ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="flex items-center justify-between p-4">
+          {/* Previous Chapter Button */}
+          <Button
+            onClick={() => {
+              const prevChapter = getPrevChapter();
+              if (prevChapter) goToChapter(prevChapter.id);
+            }}
+            disabled={!getPrevChapter()}
+            variant="ghost"
+            size="sm"
+            className="text-manga-text-secondary hover:text-manga-text-primary disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Cap. Anterior
+          </Button>
+
+          {/* Page Navigation */}
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={goToPrevPage}
+              disabled={currentPage === 0 && !getPrevChapter()}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary disabled:opacity-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="text-center">
+              <div className="text-sm text-manga-text-primary font-medium">
+                {currentPage + 1} / {currentChapter.pages.length}
+              </div>
+              <div className="text-xs text-manga-text-secondary">
+                Cap. {getCurrentChapterIndex() + 1} de {manga?.chapters.length || 0}
+              </div>
+            </div>
+
+            <Button
+              onClick={goToNextPage}
+              disabled={currentPage === currentChapter.pages.length - 1 && !getNextChapter()}
+              variant="ghost"
+              size="sm"
+              className="text-manga-text-secondary hover:text-manga-text-primary disabled:opacity-50"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Next Chapter Button */}
+          <Button
+            onClick={() => {
+              const nextChapter = getNextChapter();
+              if (nextChapter) goToChapter(nextChapter.id);
+            }}
+            disabled={!getNextChapter()}
+            variant="ghost"
+            size="sm"
+            className="text-manga-text-secondary hover:text-manga-text-primary disabled:opacity-50"
+          >
+            Próx. Cap.
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Click Areas for Navigation */}
+      <div 
+        className="fixed left-0 top-24 w-1/3 h-[calc(100vh-200px)] z-30 cursor-pointer"
+        onClick={goToPrevPage}
+        title="Página anterior"
+      />
+      <div 
+        className="fixed right-0 top-24 w-1/3 h-[calc(100vh-200px)] z-30 cursor-pointer"
+        onClick={goToNextPage}
+        title="Próxima página"
+      />
     </div>
   );
 };
