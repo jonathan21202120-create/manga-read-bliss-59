@@ -251,7 +251,10 @@ const Index = () => {
       <Navigation topMangas={topMangas} onRead={handleRead} />
       
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection 
+        featuredManga={topMangas[0]} 
+        onRead={handleRead}
+      />
       
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12 space-y-12">
