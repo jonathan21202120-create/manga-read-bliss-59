@@ -1,43 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Star, BookOpen, TrendingUp } from "lucide-react";
+import heroImage from "@/assets/hero-manga.jpg";
 
-interface HeroSectionProps {
-  featuredManga?: {
-    id: string;
-    title: string;
-    cover: string;
-    rating: number;
-    chapters: number;
-    status: string;
-    genre: string[];
-    description: string;
-    readCount: number;
-  };
-  onRead?: (id: string) => void;
-  currentDay?: number;
-}
-
-export function HeroSection({ featuredManga, onRead, currentDay }: HeroSectionProps) {
-  if (!featuredManga) return null;
-  
-  const dayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-  const currentDayName = currentDay ? dayNames[currentDay - 1] : 'Dia';
-  
+export function HeroSection() {
   return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden">
-      {/* Background Image - Hero Banner */}
+    <section className="relative min-h-[70vh] flex items-center overflow-hidden">
+      {/* Background Image */}
       <div className="absolute inset-0">
         <img
-          src={featuredManga.cover}
-          alt={`Capa de ${featuredManga.title}`}
-          className="w-full h-full object-cover object-center"
-          style={{ objectPosition: '50% 25%' }}
+          src={heroImage}
+          alt="Featured Manga"
+          className="w-full h-full object-cover"
         />
-        {/* Enhanced gradient overlays for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-background/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
       </div>
       
       {/* Content */}
@@ -47,56 +24,46 @@ export function HeroSection({ featuredManga, onRead, currentDay }: HeroSectionPr
           <div className="flex items-center gap-2">
             <Badge className="bg-manga-primary/20 text-manga-primary border-manga-primary/30 backdrop-blur-sm">
               <TrendingUp className="h-3 w-3 mr-1" />
-              Mais Lido - {currentDayName}
+              Em Alta
             </Badge>
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 backdrop-blur-sm">
-              {featuredManga.status === 'ongoing' ? 'Em Andamento' : 
-               featuredManga.status === 'completed' ? 'Completo' : 'Em Pausa'}
+              Novo Capítulo
             </Badge>
           </div>
           
           {/* Title */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-manga-text-primary leading-tight">
+            Descubra Seus
             <span className="block bg-gradient-primary bg-clip-text text-transparent">
-              {featuredManga.title}
+              Mangás Favoritos
             </span>
           </h1>
           
           {/* Description */}
           <p className="text-lg text-manga-text-secondary leading-relaxed">
-            {featuredManga.description}
+            Mergulhe no universo dos mangás com nossa plataforma de leitura. 
+            Milhares de títulos, interface otimizada e experiência imersiva te aguardam.
           </p>
           
           {/* Stats */}
           <div className="flex items-center gap-6 text-sm text-manga-text-secondary">
             <div className="flex items-center gap-1">
               <Star className="h-4 w-4 text-yellow-400 fill-current" />
-              <span>{featuredManga.rating}/10</span>
+              <span>9.2/10</span>
             </div>
             <div className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
-              <span>{featuredManga.chapters} Capítulos</span>
+              <span>156 Capítulos</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className={`w-2 h-2 rounded-full ${
-                featuredManga.status === 'ongoing' ? 'bg-green-400' : 
-                featuredManga.status === 'completed' ? 'bg-blue-400' : 'bg-yellow-400'
-              }`}></span>
-              <span>
-                {featuredManga.status === 'ongoing' ? 'Em Andamento' : 
-                 featuredManga.status === 'completed' ? 'Completo' : 'Em Pausa'}
-              </span>
+              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+              <span>Em Andamento</span>
             </div>
           </div>
           
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button 
-              size="lg" 
-              variant="manga" 
-              className="text-base"
-              onClick={() => onRead?.(featuredManga.id)}
-            >
+            <Button size="lg" variant="manga" className="text-base">
               <Play className="h-5 w-5 mr-2" />
               Começar a Ler
             </Button>

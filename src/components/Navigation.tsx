@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopMangaDropdown } from "@/components/TopMangaDropdown";
-import { AgeGateModal } from "@/components/AgeGateModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
@@ -26,8 +25,6 @@ interface NavigationProps {
 
 export function Navigation({ topMangas = [], onRead }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAdultModalOpen, setIsAdultModalOpen] = useState(false);
-  const [isAdultContentEnabled, setIsAdultContentEnabled] = useState(false);
   const { user, logout, isAdmin } = useAuth();
 
   const handleLogout = async () => {
@@ -44,14 +41,6 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
         variant: "destructive",
       });
     }
-  };
-
-  const handleAdultContentConfirm = () => {
-    setIsAdultContentEnabled(true);
-    toast({
-      title: "Conteúdo +18 ativado",
-      description: "Válido apenas para esta sessão",
-    });
   };
 
   const baseNavItems = [
@@ -91,16 +80,6 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
                 </Button>
               </Link>
             ))}
-            
-            {/* Adult Content Button */}
-            <Button
-              variant={isAdultContentEnabled ? "manga" : "manga-ghost"}
-              className="flex items-center gap-2"
-              onClick={() => setIsAdultModalOpen(true)}
-            >
-              <Shield className="h-4 w-4" />
-              +18
-            </Button>
           </div>
         </div>
         
@@ -187,19 +166,6 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
                 </Link>
               ))}
               
-              {/* Adult Content Button for Mobile */}
-              <Button
-                variant={isAdultContentEnabled ? "manga" : "manga-ghost"}
-                className="w-full justify-start gap-3 h-12"
-                onClick={() => {
-                  setIsAdultModalOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                <Shield className="h-5 w-5" />
-                +18
-              </Button>
-              
               {/* Logout Button for Mobile */}
               <Button
                 variant="manga-ghost"
@@ -216,13 +182,6 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
           </div>
         </div>
       )}
-      
-      {/* Age Gate Modal */}
-      <AgeGateModal
-        isOpen={isAdultModalOpen}
-        onOpenChange={setIsAdultModalOpen}
-        onConfirm={handleAdultContentConfirm}
-      />
     </>
   );
 }
