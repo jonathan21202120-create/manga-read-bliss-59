@@ -15,10 +15,15 @@ interface HeroSectionProps {
     readCount: number;
   };
   onRead?: (id: string) => void;
+  currentDay?: number;
 }
 
-export function HeroSection({ featuredManga, onRead }: HeroSectionProps) {
+export function HeroSection({ featuredManga, onRead, currentDay }: HeroSectionProps) {
   if (!featuredManga) return null;
+  
+  const dayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const currentDayName = currentDay ? dayNames[currentDay - 1] : 'Dia';
+  
   return (
     <section className="relative min-h-[70vh] flex items-center overflow-hidden">
       {/* Background Image */}
@@ -39,7 +44,7 @@ export function HeroSection({ featuredManga, onRead }: HeroSectionProps) {
           <div className="flex items-center gap-2">
             <Badge className="bg-manga-primary/20 text-manga-primary border-manga-primary/30 backdrop-blur-sm">
               <TrendingUp className="h-3 w-3 mr-1" />
-              Mais Lido da Semana
+              Mais Lido - {currentDayName}
             </Badge>
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 backdrop-blur-sm">
               {featuredManga.status === 'ongoing' ? 'Em Andamento' : 

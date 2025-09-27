@@ -25,6 +25,8 @@ const Index = () => {
   const [mangaData, setMangaData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAdultContent, setShowAdultContent] = useState(false);
+  const [currentWeekDay, setCurrentWeekDay] = useState(0); // 0-6 para dias da semana
+  const [weeklyTopMangas, setWeeklyTopMangas] = useState<any[]>([]);
   const { toast } = useToast();
 
   // Fetch manga data from Supabase
@@ -65,10 +67,41 @@ const Index = () => {
         }
         
         setMangaData(transformedMangas);
+        
+        // Criar dados simulados para os 7 dias da semana (apenas obras não-adultas)
+        const normalMangas = transformedMangas.filter(manga => !manga.adultContent);
+        if (normalMangas.length > 0) {
+          const weeklyData = [];
+          for (let day = 0; day < 7; day++) {
+            // Simular variação de leituras por dia usando uma fórmula baseada no dia
+            const dayMangas = normalMangas.map(manga => ({
+              ...manga,
+              dailyReads: manga.readCount + Math.floor(Math.random() * 1000) + (day * 100),
+              day: day
+            })).sort((a, b) => b.dailyReads - a.dailyReads);
+            
+            weeklyData.push(dayMangas[0]); // Obra mais lida do dia
+          }
+          setWeeklyTopMangas(weeklyData);
+        }
+        
       } catch (error) {
         console.error('Error fetching mangas:', error);
         // Use backup data only if Supabase fails completely
+        const filteredBackup = backupMangaData.filter(manga => !manga.adultContent);
         setMangaData(backupMangaData);
+        
+        // Criar dados semanais de backup
+        const weeklyBackup = [];
+        for (let day = 0; day < 7; day++) {
+          const dayManga = filteredBackup[day % filteredBackup.length];
+          weeklyBackup.push({
+            ...dayManga,
+            day: day,
+            dailyReads: dayManga.readCount + (day * 1000)
+          });
+        }
+        setWeeklyTopMangas(weeklyBackup);
       } finally {
         setIsLoading(false);
       }
@@ -76,6 +109,15 @@ const Index = () => {
 
     fetchMangas();
   }, [favorites]);
+
+  // Rotação automática entre os dias da semana (muda a cada 5 segundos)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentWeekDay(prev => (prev + 1) % 7);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Mock data backup in case Supabase fails
   const backupMangaData = [
@@ -90,6 +132,7 @@ const Index = () => {
       description: "Uma épica batalha entre guerreiros lendários em um mundo repleto de magia e perigos.",
       isFavorite: favorites.includes("1"),
       readCount: 234000,
+      adultContent: false,
     },
     {
       id: "2",
@@ -102,6 +145,7 @@ const Index = () => {
       description: "Uma jovem descobre seus poderes mágicos e deve proteger o mundo das trevas.",
       isFavorite: favorites.includes("2"),
       readCount: 189000,
+      adultContent: false,
     },
     {
       id: "3",
@@ -114,6 +158,7 @@ const Index = () => {
       description: "Em um futuro distópico, um ninja cybernético luta contra corporações corruptas.",
       isFavorite: favorites.includes("3"),
       readCount: 156000,
+      adultContent: false,
     },
     // Duplicando para mostrar mais cards
     {
@@ -127,6 +172,7 @@ const Index = () => {
       description: "Uma épica batalha entre guerreiros lendários.",
       isFavorite: favorites.includes("4"),
       readCount: 145000,
+      adultContent: false,
     },
     {
       id: "5",
@@ -139,6 +185,7 @@ const Index = () => {
       description: "Poderes mágicos e proteção do mundo.",
       isFavorite: favorites.includes("5"),
       readCount: 123000,
+      adultContent: false,
     },
     {
       id: "6",
@@ -151,6 +198,7 @@ const Index = () => {
       description: "Ninja cybernético em futuro distópico.",
       isFavorite: favorites.includes("6"),
       readCount: 98000,
+      adultContent: false,
     },
   ];
 
@@ -252,8 +300,9 @@ const Index = () => {
       
       {/* Hero Section */}
       <HeroSection 
-        featuredManga={topMangas[0]} 
+        featuredManga={weeklyTopMangas[currentWeekDay]} 
         onRead={handleRead}
+        currentDay={currentWeekDay + 1}
       />
       
       {/* Main Content */}
