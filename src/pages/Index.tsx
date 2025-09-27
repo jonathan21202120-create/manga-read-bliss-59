@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { HeroSection } from "@/components/HeroSection";
 import { MangaGrid } from "@/components/MangaGrid";
+import { RankingSection } from "@/components/RankingSection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -307,6 +308,9 @@ const Index = () => {
       
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12 space-y-12">
+        {/* Rankings Section */}
+        <RankingSection onRead={handleRead} />
+        
         {/* Categories */}
         <section>
           <div className="flex flex-col gap-4 mb-8">

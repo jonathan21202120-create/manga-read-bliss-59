@@ -25,16 +25,19 @@ export function HeroSection({ featuredManga, onRead, currentDay }: HeroSectionPr
   const currentDayName = currentDay ? dayNames[currentDay - 1] : 'Dia';
   
   return (
-    <section className="relative min-h-[70vh] flex items-center overflow-hidden">
-      {/* Background Image */}
+    <section className="relative min-h-[80vh] flex items-center overflow-hidden">
+      {/* Background Image - Hero Banner */}
       <div className="absolute inset-0">
         <img
           src={featuredManga.cover}
           alt={`Capa de ${featuredManga.title}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
+          style={{ objectPosition: '50% 25%' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        {/* Enhanced gradient overlays for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-background/60" />
       </div>
       
       {/* Content */}
