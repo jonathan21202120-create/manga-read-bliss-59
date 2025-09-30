@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useLocalFileUpload } from '@/hooks/useLocalFileUpload';
+import { useWasabiUpload } from '@/hooks/useWasabiUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +35,7 @@ interface ProfileEditFormProps {
 export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { uploadFile } = useLocalFileUpload();
+  const { uploadFile } = useWasabiUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -57,7 +57,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
       setUploadingPhoto(true);
       
       const result = await uploadFile(file, {
-        folder: 'profile-photos',
+        folder: 'avatars',
         maxSizeBytes: 5 * 1024 * 1024,
         allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
       });

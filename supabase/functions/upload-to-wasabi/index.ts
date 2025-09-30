@@ -36,7 +36,7 @@ serve(async (req) => {
       });
     }
 
-    // Verificar se o usuário é admin
+    // Verificar se o usuário tem perfil (qualquer usuário autenticado pode fazer upload)
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('*')
@@ -44,7 +44,7 @@ serve(async (req) => {
       .single();
 
     if (!profile) {
-      return new Response(JSON.stringify({ error: 'Apenas administradores podem fazer upload' }), {
+      return new Response(JSON.stringify({ error: 'Perfil não encontrado' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
