@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useWasabiUpload } from "@/hooks/useWasabiUpload";
+import { useLocalFileUpload } from "@/hooks/useLocalFileUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ArrowLeft, 
@@ -42,7 +42,7 @@ export default function ChapterManager() {
   const { mangaId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { uploadMultipleFiles, isUploading } = useWasabiUpload();
+  const { uploadMultipleFiles, isUploading } = useLocalFileUpload();
   
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [mangaInfo, setMangaInfo] = useState<MangaInfo | null>(null);
