@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useLocalFileUpload } from "@/hooks/useLocalFileUpload";
+import { useWasabiUpload } from "@/hooks/useWasabiUpload";
 import { ArrowLeft, Upload, X } from "lucide-react";
 
 const availableGenres = [
@@ -23,7 +23,7 @@ export default function MangaForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { uploadFile, isUploading } = useLocalFileUpload();
+  const { uploadFile, isUploading } = useWasabiUpload();
   const isEditing = id !== "new";
 
   const [formData, setFormData] = useState({
