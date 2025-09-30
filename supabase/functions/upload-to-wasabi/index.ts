@@ -89,13 +89,15 @@ serve(async (req) => {
       Key: fileName,
       Body: buffer,
       ContentType: file.type,
-      ACL: 'public-read',
     });
 
     await s3Client.send(command);
 
-    // Construir URL pública
-    const publicUrl = `${Deno.env.get('CLOUDFLARE_R2_ENDPOINT')}/${Deno.env.get('CLOUDFLARE_R2_BUCKET')}/${fileName}`;
+    // Construir URL pública usando o domínio público do R2
+    // Formato: https://<bucket>.<account_id>.r2.cloudflarestorage.com/<key>
+    const accountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID') ?? '';
+    const bucket = Deno.env.get('CLOUDFLARE_R2_BUCKET') ?? '';
+    const publicUrl = `https://${bucket}.${accountId}.r2.cloudflarestorage.com/${fileName}`;
 
     console.log(`Arquivo enviado com sucesso: ${publicUrl}`);
 
