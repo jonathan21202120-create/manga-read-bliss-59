@@ -62,13 +62,13 @@ serve(async (req) => {
       });
     }
 
-    // Configurar cliente S3 para Wasabi
+    // Configurar cliente S3 para Cloudflare R2
     const s3Client = new S3Client({
-      endpoint: Deno.env.get('WASABI_ENDPOINT'),
-      region: Deno.env.get('WASABI_REGION'),
+      endpoint: Deno.env.get('CLOUDFLARE_R2_ENDPOINT'),
+      region: 'auto',
       credentials: {
-        accessKeyId: Deno.env.get('WASABI_ACCESS_KEY') ?? '',
-        secretAccessKey: Deno.env.get('WASABI_SECRET_KEY') ?? '',
+        accessKeyId: Deno.env.get('CLOUDFLARE_R2_ACCESS_KEY') ?? '',
+        secretAccessKey: Deno.env.get('CLOUDFLARE_R2_SECRET_KEY') ?? '',
       },
       forcePathStyle: true,
     });
@@ -83,9 +83,9 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
-    // Upload para Wasabi
+    // Upload para Cloudflare R2
     const command = new PutObjectCommand({
-      Bucket: Deno.env.get('WASABI_BUCKET'),
+      Bucket: Deno.env.get('CLOUDFLARE_R2_BUCKET'),
       Key: fileName,
       Body: buffer,
       ContentType: file.type,
@@ -95,7 +95,7 @@ serve(async (req) => {
     await s3Client.send(command);
 
     // Construir URL pública
-    const publicUrl = `${Deno.env.get('WASABI_ENDPOINT')}/${Deno.env.get('WASABI_BUCKET')}/${fileName}`;
+    const publicUrl = `${Deno.env.get('CLOUDFLARE_R2_ENDPOINT')}/${Deno.env.get('CLOUDFLARE_R2_BUCKET')}/${fileName}`;
 
     console.log(`Arquivo enviado com sucesso: ${publicUrl}`);
 
