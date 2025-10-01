@@ -65,10 +65,12 @@ serve(async (req) => {
     // Configurar cliente S3 para Cloudflare R2
     const accessKey = Deno.env.get('CLOUDFLARE_R2_ACCESS_KEY');
     const secretKey = Deno.env.get('CLOUDFLARE_R2_SECRET_KEY');
+    const endpoint = Deno.env.get('CLOUDFLARE_R2_ENDPOINT') || 'https://953ea806465dfaba8f3f01d3a9afe99f.r2.cloudflarestorage.com';
+    const bucket = Deno.env.get('CLOUDFLARE_R2_BUCKET') || 'culto-do-demonio-celestial';
     
     console.log('Configurando R2 com:', {
-      endpoint: 'https://953ea806465dfaba8f3f01d3a9afe99f.r2.cloudflarestorage.com',
-      bucket: 'culto-do-demonio-celestial',
+      endpoint,
+      bucket,
       hasAccessKey: !!accessKey,
       hasSecretKey: !!secretKey,
     });
@@ -82,7 +84,7 @@ serve(async (req) => {
     }
 
     const s3Client = new S3Client({
-      endpoint: 'https://953ea806465dfaba8f3f01d3a9afe99f.r2.cloudflarestorage.com',
+      endpoint,
       region: 'auto',
       credentials: {
         accessKeyId: accessKey,
@@ -103,7 +105,7 @@ serve(async (req) => {
 
     // Upload para Cloudflare R2
     const command = new PutObjectCommand({
-      Bucket: 'culto-do-demonio-celestial',
+      Bucket: bucket,
       Key: fileName,
       Body: buffer,
       ContentType: file.type,
@@ -111,8 +113,8 @@ serve(async (req) => {
 
     await s3Client.send(command);
 
-    // Construir URL pública usando o domínio público do R2
-    const publicUrl = `https://953ea806465dfaba8f3f01d3a9afe99f.r2.cloudflarestorage.com/culto-do-demonio-celestial/${fileName}`;
+    // Construir URL pública usando o endpoint configurado
+    const publicUrl = `${endpoint}/${bucket}/${fileName}`;
 
     console.log(`Arquivo enviado com sucesso: ${publicUrl}`);
 
