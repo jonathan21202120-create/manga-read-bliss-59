@@ -113,8 +113,9 @@ serve(async (req) => {
 
     await s3Client.send(command);
 
-    // Construir URL pública usando o endpoint configurado
-    const publicUrl = `${endpoint}/${bucket}/${fileName}`;
+    // Construir URL pública usando o domínio customizado
+    // O domínio customizado já aponta para o bucket, então não incluímos o nome do bucket na URL
+    const publicUrl = `https://arquivos.culto-demoniaco.online/${fileName}`;
 
     console.log(`Arquivo enviado com sucesso: ${publicUrl}`);
 
