@@ -63,12 +63,30 @@ serve(async (req) => {
     }
 
     // Configurar cliente S3 para Cloudflare R2
+    const accessKey = Deno.env.get('CLOUDFLARE_R2_ACCESS_KEY');
+    const secretKey = Deno.env.get('CLOUDFLARE_R2_SECRET_KEY');
+    
+    console.log('Configurando R2 com:', {
+      endpoint: 'https://953ea806465dfaba8f3f01d3a9afe99f.r2.cloudflarestorage.com',
+      bucket: 'culto-do-demonio-celestial',
+      hasAccessKey: !!accessKey,
+      hasSecretKey: !!secretKey,
+    });
+
+    if (!accessKey || !secretKey) {
+      console.error('Credenciais R2 não encontradas');
+      return new Response(JSON.stringify({ error: 'Credenciais R2 não configuradas' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const s3Client = new S3Client({
       endpoint: 'https://953ea806465dfaba8f3f01d3a9afe99f.r2.cloudflarestorage.com',
       region: 'auto',
       credentials: {
-        accessKeyId: Deno.env.get('CLOUDFLARE_R2_ACCESS_KEY') ?? '',
-        secretAccessKey: Deno.env.get('CLOUDFLARE_R2_SECRET_KEY') ?? '',
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
       },
       forcePathStyle: true,
     });
