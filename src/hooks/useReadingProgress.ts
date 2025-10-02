@@ -28,6 +28,7 @@ export const useReadingProgress = () => {
 
     setIsLoading(true);
     try {
+      // Try to fetch from Supabase first
       const { data, error } = await supabase.rpc('get_user_reading_progress', {
         p_user_id: user.id
       });
@@ -50,12 +51,51 @@ export const useReadingProgress = () => {
 
       setProgress(transformedProgress);
     } catch (error: any) {
-      console.error('Error fetching reading progress:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar o progresso de leitura.",
-        variant: "destructive"
-      });
+      console.error('Error fetching reading progress (loading from localStorage):', error);
+      
+      // Fallback: Try to load from localStorage
+      try {
+        const localProgressData: ReadingProgress[] = [];
+        const keys = Object.keys(localStorage);
+        
+        keys.forEach(key => {
+          if (key.startsWith(`reading_progress_${user.id}_`)) {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const parsed = JSON.parse(data);
+              // Convert localStorage format to ReadingProgress format
+              localProgressData.push({
+                mangaId: parsed.manga_id,
+                mangaTitle: 'Carregando...', // Will be updated when online
+                mangaCoverUrl: '',
+                chapterId: parsed.chapter_id,
+                chapterNumber: 0,
+                chapterTitle: 'Carregando...',
+                currentPage: parsed.current_page,
+                totalPages: 0,
+                isCompleted: parsed.is_completed,
+                lastReadAt: parsed.last_read_at,
+                progressPercentage: 0,
+              });
+            }
+          }
+        });
+        
+        setProgress(localProgressData);
+        
+        if (localProgressData.length > 0) {
+          toast({
+            title: "Modo offline",
+            description: "Carregando progresso salvo localmente.",
+          });
+        }
+      } catch (localError) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar o progresso de leitura.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,32 +109,50 @@ export const useReadingProgress = () => {
   ) => {
     if (!user) return;
 
+    const progressData = {
+      user_id: user.id,
+      manga_id: mangaId,
+      chapter_id: chapterId,
+      current_page: currentPage,
+      is_completed: isCompleted,
+      last_read_at: new Date().toISOString()
+    };
+
     try {
-      // Insert directly into reading_progress table instead of using RPC
+      // Try to save to Supabase first
       const { error } = await supabase
         .from('reading_progress')
-        .upsert({
-          user_id: user.id,
-          manga_id: mangaId,
-          chapter_id: chapterId,
-          current_page: currentPage,
-          is_completed: isCompleted,
-          last_read_at: new Date().toISOString()
-        }, {
+        .upsert(progressData, {
           onConflict: 'user_id,manga_id'
         });
 
       if (error) throw error;
 
+      // Save to localStorage as backup
+      const localKey = `reading_progress_${user.id}_${mangaId}`;
+      localStorage.setItem(localKey, JSON.stringify(progressData));
+
       // Refresh progress data
       await fetchProgress();
     } catch (error: any) {
-      console.error('Error updating reading progress:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar o progresso.",
-        variant: "destructive"
-      });
+      console.error('Error updating reading progress (saving to localStorage):', error);
+      
+      // Fallback: Save only to localStorage if Supabase fails
+      try {
+        const localKey = `reading_progress_${user.id}_${mangaId}`;
+        localStorage.setItem(localKey, JSON.stringify(progressData));
+        
+        toast({
+          title: "Progresso salvo localmente",
+          description: "Salvando offline. Será sincronizado quando online.",
+        });
+      } catch (localError) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar o progresso.",
+          variant: "destructive"
+        });
+      }
     }
   }, [user, fetchProgress, toast]);
 
