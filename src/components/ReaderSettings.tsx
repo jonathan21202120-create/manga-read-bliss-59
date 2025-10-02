@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Monitor, Moon, Sun, Smartphone, Tablet, BookOpen } from "lucide-react";
+import { Settings, Monitor, Moon, Sun, Smartphone, Tablet, BookOpen, RotateCcw } from "lucide-react";
 
 export interface ReaderSettingsType {
   readingMode: "single" | "double" | "webtoon";
@@ -22,6 +22,7 @@ export interface ReaderSettingsType {
   grayscale: boolean;
   brightness: number;
   contrast: number;
+  zoom: number;
 }
 
 interface ReaderSettingsProps {
@@ -39,6 +40,25 @@ const ReaderSettings = ({ settings, onSettingsChange }: ReaderSettingsProps) => 
     onSettingsChange({
       ...settings,
       [key]: value,
+    });
+  };
+
+  const resetToDefaults = () => {
+    onSettingsChange({
+      readingMode: "webtoon",
+      readingDirection: "ltr",
+      pagefit: "width",
+      theme: "auto",
+      autoScroll: false,
+      scrollSpeed: 3,
+      imageQuality: "high",
+      transitionSpeed: 300,
+      showPageNumbers: true,
+      invertColors: false,
+      grayscale: false,
+      brightness: 100,
+      contrast: 100,
+      zoom: 100,
     });
   };
 
@@ -264,6 +284,35 @@ const ReaderSettings = ({ settings, onSettingsChange }: ReaderSettingsProps) => 
               className="w-full"
             />
           </div>
+
+          <Separator className="bg-border/50" />
+
+          {/* Zoom */}
+          <div className="space-y-2">
+            <Label className="text-manga-text-primary font-medium">
+              Zoom: {settings.zoom}%
+            </Label>
+            <Slider
+              value={[settings.zoom]}
+              onValueChange={(value) => updateSetting("zoom", value[0])}
+              min={50}
+              max={200}
+              step={10}
+              className="w-full"
+            />
+          </div>
+
+          <Separator className="bg-border/50" />
+
+          {/* Botão Restaurar Padrão */}
+          <Button 
+            variant="manga-outline" 
+            className="w-full"
+            onClick={resetToDefaults}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restaurar Padrão
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

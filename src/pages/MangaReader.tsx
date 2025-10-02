@@ -10,12 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ReaderSettings, { ReaderSettingsType } from "@/components/ReaderSettings";
 import {
   ArrowLeft,
-  ArrowRight,
   Home,
-  List,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
   Maximize,
   ChevronLeft,
   ChevronRight
@@ -44,7 +39,6 @@ const MangaReader = () => {
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [showControls, setShowControls] = useState(true);
-  const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [readerSettings, setReaderSettings] = useState<ReaderSettingsType>({
@@ -61,6 +55,7 @@ const MangaReader = () => {
     grayscale: false,
     brightness: 100,
     contrast: 100,
+    zoom: 100,
   });
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
@@ -349,20 +344,26 @@ const MangaReader = () => {
     let scrollInterval: NodeJS.Timeout;
     
     if (readerSettings.readingMode === "webtoon" && readerSettings.autoScroll) {
+      const scrollSpeed = readerSettings.scrollSpeed * 1000;
       scrollInterval = setInterval(() => {
-        const scrollAmount = window.innerHeight * 0.1;
-        window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+        const scrollAmount = window.innerHeight / (readerSettings.scrollSpeed * 10);
+        window.scrollBy({ top: scrollAmount, behavior: 'auto' });
         
         // Check if we've reached the bottom
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+        const scrollHeight = document.documentElement.scrollHeight;
+        const scrollTop = window.scrollY;
+        const clientHeight = window.innerHeight;
+        
+        if (scrollTop + clientHeight >= scrollHeight - 100) {
+          clearInterval(scrollInterval);
           // Go to next chapter
           const currentIndex = getCurrentChapterIndex();
-          if (currentIndex < manga!.chapters.length - 1) {
-            const nextChapter = manga!.chapters[currentIndex + 1];
+          if (manga && currentIndex < manga.chapters.length - 1) {
+            const nextChapter = manga.chapters[currentIndex + 1];
             navigate(`/manga/${id}/chapter/${nextChapter.id}`);
           }
         }
-      }, readerSettings.scrollSpeed * 1000);
+      }, 100);
     }
 
     return () => {
@@ -370,7 +371,7 @@ const MangaReader = () => {
         clearInterval(scrollInterval);
       }
     };
-  }, [readerSettings.readingMode, readerSettings.autoScroll, readerSettings.scrollSpeed, manga, id, navigate, getCurrentChapterIndex]);
+  }, [readerSettings.readingMode, readerSettings.autoScroll, readerSettings.scrollSpeed, manga, id, navigate]);
 
   // Track current page in webtoon mode based on scroll position
   useEffect(() => {
@@ -413,6 +414,24 @@ const MangaReader = () => {
   }
 
   const progress = ((currentPage + 1) / currentChapter.pages.length) * 100;
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    if (readerSettings.theme === "light") {
+      root.classList.remove("dark");
+      root.classList.add("light");
+    } else if (readerSettings.theme === "dark") {
+      root.classList.remove("light");
+      root.classList.add("dark");
+    } else {
+      // Auto mode - use system preference
+      root.classList.remove("light", "dark");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.add(prefersDark ? "dark" : "light");
+    }
+  }, [readerSettings.theme]);
 
   return (
     <div className="min-h-screen bg-manga-surface relative overflow-hidden">
@@ -493,7 +512,7 @@ const MangaReader = () => {
       <div className={`min-h-screen ${readerSettings.readingMode === "webtoon" ? "pt-32 pb-8" : "flex items-center justify-center p-4 pt-32 pb-24"}`}>
         <div 
           className={`relative ${readerSettings.readingMode === "webtoon" ? "w-full flex justify-center" : "max-w-full max-h-full"}`}
-          style={{ transform: readerSettings.readingMode === "webtoon" ? "none" : `scale(${zoom / 100})` }}
+          style={{ transform: readerSettings.readingMode === "webtoon" ? "none" : `scale(${readerSettings.zoom / 100})` }}
         >
           {readerSettings.readingMode === "single" ? (
             <img
@@ -566,7 +585,7 @@ const MangaReader = () => {
                       ${readerSettings.invertColors ? 'invert(1)' : ''} 
                       ${readerSettings.grayscale ? 'grayscale(1)' : ''}
                     `,
-                    transform: `scale(${zoom / 100})`
+                    transform: `scale(${readerSettings.zoom / 100})`
                   }}
                   draggable={false}
                 />
@@ -604,98 +623,52 @@ const MangaReader = () => {
         </>
       )}
 
-      {/* Bottom Controls - Modified for webtoon mode */}
-      <div 
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-manga-surface/90 to-transparent p-4 transition-transform duration-300 ${
-          showControls ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <div className="flex flex-col items-center gap-3">
-          {/* Chapter Navigation */}
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="manga-outline"
-              size="sm"
-              onClick={() => {
-                const currentIndex = getCurrentChapterIndex();
-                if (currentIndex > 0) {
-                  const prevChapter = manga!.chapters[currentIndex - 1];
-                  navigate(`/manga/${id}/chapter/${prevChapter.id}`);
-                  setCurrentPage(0);
-                  toast({
-                    title: "Capítulo anterior",
-                    description: `Capítulo ${prevChapter.number}: ${prevChapter.title}`,
-                  });
-                }
-              }}
-              disabled={getCurrentChapterIndex() === 0}
-              className="gap-1"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Capítulo Anterior
-            </Button>
-            
-            <Button
-              variant="manga"
-              size="sm"
-              onClick={() => {
-                const currentIndex = getCurrentChapterIndex();
-                if (currentIndex < manga!.chapters.length - 1) {
-                  const nextChapter = manga!.chapters[currentIndex + 1];
-                  navigate(`/manga/${id}/chapter/${nextChapter.id}`);
-                  setCurrentPage(0);
-                  toast({
-                    title: "Próximo capítulo",
-                    description: `Capítulo ${nextChapter.number}: ${nextChapter.title}`,
-                  });
-                }
-              }}
-              disabled={getCurrentChapterIndex() === manga!.chapters.length - 1}
-              className="gap-1"
-            >
-              Próximo Capítulo
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Page Navigation & Zoom Controls */}
-          <div className="flex items-center justify-center gap-4">
-            {readerSettings.readingMode !== "webtoon" && (
-              <Button
-                variant="manga-outline"
-                onClick={goToPrevPage}
-                disabled={currentPage === 0 && getCurrentChapterIndex() === 0}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Anterior
-              </Button>
-            )}
-
-            <div className="flex items-center gap-2">
-              <Button variant="manga-ghost" size="icon" onClick={() => setZoom(Math.max(50, zoom - 10))}>
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <span className="text-manga-text-secondary text-sm w-12 text-center">
-                {zoom}%
-              </span>
-              <Button variant="manga-ghost" size="icon" onClick={() => setZoom(Math.min(200, zoom + 10))}>
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-              <Button variant="manga-ghost" size="icon" onClick={() => setZoom(100)}>
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {readerSettings.readingMode !== "webtoon" && (
-              <Button
-                variant="manga"
-                onClick={goToNextPage}
-              >
-                Próxima
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
-          </div>
+      {/* Bottom Controls - Fixed Navigation Buttons */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-manga-surface/95 to-transparent backdrop-blur-sm p-4">
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="manga-outline"
+            size="lg"
+            onClick={() => {
+              const currentIndex = getCurrentChapterIndex();
+              if (currentIndex > 0) {
+                const prevChapter = manga!.chapters[currentIndex - 1];
+                navigate(`/manga/${id}/chapter/${prevChapter.id}`);
+                setCurrentPage(0);
+                toast({
+                  title: "Capítulo anterior",
+                  description: `Capítulo ${prevChapter.number}: ${prevChapter.title}`,
+                });
+              }
+            }}
+            disabled={getCurrentChapterIndex() === 0}
+            className="gap-2"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            Capítulo Anterior
+          </Button>
+          
+          <Button
+            variant="manga"
+            size="lg"
+            onClick={() => {
+              const currentIndex = getCurrentChapterIndex();
+              if (currentIndex < manga!.chapters.length - 1) {
+                const nextChapter = manga!.chapters[currentIndex + 1];
+                navigate(`/manga/${id}/chapter/${nextChapter.id}`);
+                setCurrentPage(0);
+                toast({
+                  title: "Próximo capítulo",
+                  description: `Capítulo ${nextChapter.number}: ${nextChapter.title}`,
+                });
+              }
+            }}
+            disabled={getCurrentChapterIndex() === manga!.chapters.length - 1}
+            className="gap-2"
+          >
+            Próximo Capítulo
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 
