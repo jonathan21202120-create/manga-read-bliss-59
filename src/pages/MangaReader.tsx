@@ -401,20 +401,6 @@ const MangaReader = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [readerSettings.readingMode, currentChapter, currentPage]);
 
-  if (isLoading || !manga || !currentChapter) {
-    return (
-      <div className="min-h-screen bg-manga-surface flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-manga-text-primary mb-4">
-            {isLoading ? "Carregando..." : "Capítulo não encontrado"}
-          </h1>
-        </div>
-      </div>
-    );
-  }
-
-  const progress = ((currentPage + 1) / currentChapter.pages.length) * 100;
-
   // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
@@ -432,6 +418,20 @@ const MangaReader = () => {
       root.classList.add(prefersDark ? "dark" : "light");
     }
   }, [readerSettings.theme]);
+
+  if (isLoading || !manga || !currentChapter) {
+    return (
+      <div className="min-h-screen bg-manga-surface flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-manga-text-primary mb-4">
+            {isLoading ? "Carregando..." : "Capítulo não encontrado"}
+          </h1>
+        </div>
+      </div>
+    );
+  }
+
+  const progress = ((currentPage + 1) / currentChapter.pages.length) * 100;
 
   return (
     <div className="min-h-screen bg-manga-surface relative overflow-hidden">
