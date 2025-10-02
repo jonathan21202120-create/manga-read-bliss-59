@@ -537,10 +537,8 @@ const MangaReader = () => {
 
       </div>
 
-      {/* Progress Bar */}
-      <div className={`fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-manga-surface/95 to-transparent backdrop-blur-sm transition-transform duration-300 ${
-        showControls ? "translate-y-0" : "-translate-y-full"
-      }`}>
+      {/* Progress Bar - Always Visible */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-manga-surface/95 to-transparent backdrop-blur-sm">
         <div className="flex items-center justify-between text-sm text-manga-text-secondary px-4 pt-3 pb-2">
           {readerSettings.showPageNumbers && (
             <span className="font-medium">Página {currentPage + 1} de {currentChapter.pages.length}</span>
