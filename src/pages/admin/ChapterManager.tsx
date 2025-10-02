@@ -20,6 +20,7 @@ import {
   Calendar,
   FileImage
 } from "lucide-react";
+import mangaCoverFallback from "@/assets/manga-cover-1.jpg";
 
 interface Chapter {
   id: string;
@@ -74,7 +75,7 @@ export default function ChapterManager() {
         setMangaInfo({
           id: mangaData.id,
           title: mangaData.title,
-          cover: mangaData.cover_url || '/src/assets/manga-cover-1.jpg'
+          cover: mangaData.cover_url || mangaCoverFallback
         });
 
         // Fetch chapters
@@ -284,7 +285,7 @@ export default function ChapterManager() {
                     alt={mangaInfo.title}
                     className="w-16 h-20 object-cover rounded"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/src/assets/manga-cover-1.jpg';
+                      (e.target as HTMLImageElement).src = mangaCoverFallback;
                     }}
                   />
                   <div>

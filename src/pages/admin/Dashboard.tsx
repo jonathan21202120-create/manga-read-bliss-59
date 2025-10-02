@@ -17,6 +17,7 @@ import {
   Eye
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import mangaCoverFallback from "@/assets/manga-cover-1.jpg";
 
 interface MangaData {
   id: string;
@@ -253,7 +254,7 @@ export default function AdminDashboard() {
                               alt={manga.title}
                               className="w-12 h-16 object-cover rounded"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/src/assets/manga-cover-1.jpg';
+                                (e.target as HTMLImageElement).src = mangaCoverFallback;
                               }}
                             />
                             <div>
