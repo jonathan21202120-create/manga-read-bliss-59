@@ -82,19 +82,8 @@ export const useReadingProgress = () => {
         });
         
         setProgress(localProgressData);
-        
-        if (localProgressData.length > 0) {
-          toast({
-            title: "Modo offline",
-            description: "Carregando progresso salvo localmente.",
-          });
-        }
       } catch (localError) {
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar o progresso de leitura.",
-          variant: "destructive"
-        });
+        console.error('Error loading from localStorage:', localError);
       }
     } finally {
       setIsLoading(false);
@@ -141,17 +130,8 @@ export const useReadingProgress = () => {
       try {
         const localKey = `reading_progress_${user.id}_${mangaId}`;
         localStorage.setItem(localKey, JSON.stringify(progressData));
-        
-        toast({
-          title: "Progresso salvo localmente",
-          description: "Salvando offline. Será sincronizado quando online.",
-        });
       } catch (localError) {
-        toast({
-          title: "Erro",
-          description: "Não foi possível salvar o progresso.",
-          variant: "destructive"
-        });
+        console.error('Error saving to localStorage:', localError);
       }
     }
   }, [user, fetchProgress, toast]);

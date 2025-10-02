@@ -42,6 +42,7 @@ const MangaReader = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [clickCount, setClickCount] = useState(0);
+  const [progress, setProgress] = useState(0);
   const clickTimerRef = useRef<NodeJS.Timeout>();
   const [readerSettings, setReaderSettings] = useState<ReaderSettingsType>({
     readingMode: "webtoon",
@@ -396,6 +397,29 @@ const MangaReader = () => {
     };
   }, [readerSettings.readingMode, readerSettings.autoScroll, readerSettings.scrollSpeed, manga, id, navigate]);
 
+  // Calculate progress based on reading mode
+  useEffect(() => {
+    if (!currentChapter) return;
+
+    if (readerSettings.readingMode === "webtoon") {
+      // Calculate progress based on scroll position
+      const handleScroll = () => {
+        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollTop = window.scrollY;
+        const scrollProgress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+        setProgress(Math.min(100, Math.max(0, scrollProgress)));
+      };
+
+      handleScroll(); // Initial calculation
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    } else {
+      // Calculate progress based on current page
+      const pageProgress = ((currentPage + 1) / currentChapter.pages.length) * 100;
+      setProgress(pageProgress);
+    }
+  }, [readerSettings.readingMode, currentChapter, currentPage]);
+
   // Track current page in webtoon mode based on scroll position
   useEffect(() => {
     if (readerSettings.readingMode !== "webtoon" || !currentChapter) return;
@@ -453,8 +477,6 @@ const MangaReader = () => {
       </div>
     );
   }
-
-  const progress = ((currentPage + 1) / currentChapter.pages.length) * 100;
 
   return (
     <div className="min-h-screen bg-manga-surface relative overflow-hidden">
