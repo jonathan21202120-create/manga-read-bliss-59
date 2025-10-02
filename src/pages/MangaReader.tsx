@@ -488,10 +488,10 @@ const MangaReader = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Chapter Selector */}
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Chapter Selector - Hidden on mobile */}
             <Select value={currentChapter.id} onValueChange={goToChapter}>
-              <SelectTrigger className="w-48 bg-manga-surface-elevated border-border/50">
+              <SelectTrigger className="hidden md:flex w-48 bg-manga-surface-elevated border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-manga-surface-elevated border-border/50">
@@ -509,8 +509,8 @@ const MangaReader = () => {
               onSettingsChange={setReaderSettings}
             />
 
-            {/* Fullscreen */}
-            <Button variant="manga-ghost" size="icon" onClick={toggleFullscreen}>
+            {/* Fullscreen - Hidden on mobile */}
+            <Button variant="manga-ghost" size="icon" onClick={toggleFullscreen} className="hidden md:flex">
               <Maximize className="h-5 w-5" />
             </Button>
           </div>
