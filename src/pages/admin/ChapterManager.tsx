@@ -153,7 +153,19 @@ export default function ChapterManager() {
         return;
       }
 
-      const pageUrls = uploadResults.map(result => result.url);
+      // Validar que nenhuma URL é blob ou inválida
+      const pageUrls = uploadResults
+        .map(result => result.url)
+        .filter(url => url && !url.startsWith('blob:') && !url.startsWith('file:'));
+      
+      if (pageUrls.length !== uploadResults.length) {
+        toast({
+          title: "Erro",
+          description: "Algumas páginas não foram enviadas corretamente. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Create chapter in database
       const { data, error } = await supabase

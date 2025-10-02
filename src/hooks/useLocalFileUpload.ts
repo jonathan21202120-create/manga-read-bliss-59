@@ -63,29 +63,21 @@ export const useLocalFileUpload = () => {
           try {
             setUploadProgress(50);
 
-            // In a real implementation, this would be sent to a server endpoint
-            // For now, we'll create a local URL and store the file data
-            const fileData = fileReader.result as string;
+            // IMPORTANTE: Este hook NÃO deve ser usado para armazenamento permanente
+            // Use useWasabiUpload para uploads reais
+            setUploadProgress(100);
             
-            // Create a blob URL for immediate use
-            const blob = new Blob([file], { type: file.type });
-            const localUrl = URL.createObjectURL(blob);
-            
-            // Simulate server response
-            setTimeout(() => {
-              setUploadProgress(100);
-              
-              toast({
-                title: "Upload concluído!",
-                description: "Arquivo enviado com sucesso.",
-              });
+            toast({
+              title: "Erro",
+              description: "Este hook não deve ser usado. Use useWasabiUpload para uploads reais.",
+              variant: "destructive",
+            });
 
-              // Return the local URL that can be used immediately
-              resolve({
-                url: localUrl,
-                path: filePath,
-              });
-            }, 1000);
+            resolve({
+              url: '',
+              path: filePath,
+              error: 'useLocalFileUpload is deprecated - use useWasabiUpload instead'
+            });
 
           } catch (error: any) {
             console.error('Upload error:', error);
@@ -128,23 +120,12 @@ export const useLocalFileUpload = () => {
     files: File[],
     options: UploadOptions = {}
   ): Promise<UploadResult[]> => {
-    const results: UploadResult[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setUploadProgress((i / files.length) * 100);
-      
-      const result = await uploadFile(file, {
-        ...options,
-        folder: options.folder ? `${options.folder}/chapter-${i + 1}` : `chapter-${i + 1}`,
-      });
-      
-      if (result) {
-        results.push(result);
-      }
-    }
-    
-    return results;
+    toast({
+      title: "Erro",
+      description: "Este hook não deve ser usado. Use useWasabiUpload para uploads reais.",
+      variant: "destructive",
+    });
+    return [];
   };
 
   const deleteFile = async (path: string): Promise<boolean> => {
