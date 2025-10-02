@@ -81,7 +81,7 @@ export const useReadingProgress = () => {
           is_completed: isCompleted,
           last_read_at: new Date().toISOString()
         }, {
-          onConflict: 'user_id,manga_id,chapter_id'
+          onConflict: 'user_id,manga_id'
         });
 
       if (error) throw error;
