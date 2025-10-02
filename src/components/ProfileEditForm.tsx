@@ -62,8 +62,14 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
         allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
       });
 
-      if (result) {
+      if (result && result.url && !result.url.startsWith('blob:') && !result.url.startsWith('file:')) {
         setFormData(prev => ({ ...prev, avatar_url: result.url }));
+      } else {
+        toast({
+          title: "Erro no upload",
+          description: "URL de imagem inválida. Tente novamente.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
@@ -104,13 +110,20 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
 
       const validatedData = profileUpdateSchema.parse(formData);
 
+      // Validar que avatar_url não é blob ou file
+      const avatarUrl = formData.avatar_url && 
+                       !formData.avatar_url.startsWith('blob:') && 
+                       !formData.avatar_url.startsWith('file:') 
+                       ? formData.avatar_url 
+                       : null;
+
       const { error } = await supabase
         .from('profiles')
         .update({
           nome: validatedData.nome,
           preferencias: validatedData.preferencias,
           conteudo_adulto: validatedData.conteudo_adulto,
-          avatar_url: formData.avatar_url || null
+          avatar_url: avatarUrl
         })
         .eq('user_id', user.id);
 

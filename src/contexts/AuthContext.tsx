@@ -41,6 +41,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('Profile fetched:', profile);
+      
+      // Filtrar URLs blob/file inválidas
+      if (profile?.avatar_url && (profile.avatar_url.startsWith('blob:') || profile.avatar_url.startsWith('file:'))) {
+        console.warn('Avatar URL inválida detectada (blob/file) - será removida');
+        profile.avatar_url = null;
+      }
+      
       return profile;
     } catch (error) {
       console.error('Error fetching profile:', error);
