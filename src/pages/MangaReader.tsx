@@ -610,9 +610,57 @@ const MangaReader = () => {
           showControls ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="flex items-center justify-center gap-4">
-          {readerSettings.readingMode !== "webtoon" && (
-            <>
+        <div className="flex flex-col items-center gap-3">
+          {/* Chapter Navigation */}
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="manga-outline"
+              size="sm"
+              onClick={() => {
+                const currentIndex = getCurrentChapterIndex();
+                if (currentIndex > 0) {
+                  const prevChapter = manga!.chapters[currentIndex - 1];
+                  navigate(`/manga/${id}/chapter/${prevChapter.id}`);
+                  setCurrentPage(0);
+                  toast({
+                    title: "Capítulo anterior",
+                    description: `Capítulo ${prevChapter.number}: ${prevChapter.title}`,
+                  });
+                }
+              }}
+              disabled={getCurrentChapterIndex() === 0}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Capítulo Anterior
+            </Button>
+            
+            <Button
+              variant="manga"
+              size="sm"
+              onClick={() => {
+                const currentIndex = getCurrentChapterIndex();
+                if (currentIndex < manga!.chapters.length - 1) {
+                  const nextChapter = manga!.chapters[currentIndex + 1];
+                  navigate(`/manga/${id}/chapter/${nextChapter.id}`);
+                  setCurrentPage(0);
+                  toast({
+                    title: "Próximo capítulo",
+                    description: `Capítulo ${nextChapter.number}: ${nextChapter.title}`,
+                  });
+                }
+              }}
+              disabled={getCurrentChapterIndex() === manga!.chapters.length - 1}
+              className="gap-1"
+            >
+              Próximo Capítulo
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Page Navigation & Zoom Controls */}
+          <div className="flex items-center justify-center gap-4">
+            {readerSettings.readingMode !== "webtoon" && (
               <Button
                 variant="manga-outline"
                 onClick={goToPrevPage}
@@ -621,33 +669,33 @@ const MangaReader = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Anterior
               </Button>
-            </>
-          )}
+            )}
 
-          <div className="flex items-center gap-2">
-            <Button variant="manga-ghost" size="icon" onClick={() => setZoom(Math.max(50, zoom - 10))}>
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="text-manga-text-secondary text-sm w-12 text-center">
-              {zoom}%
-            </span>
-            <Button variant="manga-ghost" size="icon" onClick={() => setZoom(Math.min(200, zoom + 10))}>
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <Button variant="manga-ghost" size="icon" onClick={() => setZoom(100)}>
-              <RotateCcw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="manga-ghost" size="icon" onClick={() => setZoom(Math.max(50, zoom - 10))}>
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-manga-text-secondary text-sm w-12 text-center">
+                {zoom}%
+              </span>
+              <Button variant="manga-ghost" size="icon" onClick={() => setZoom(Math.min(200, zoom + 10))}>
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button variant="manga-ghost" size="icon" onClick={() => setZoom(100)}>
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {readerSettings.readingMode !== "webtoon" && (
+              <Button
+                variant="manga"
+                onClick={goToNextPage}
+              >
+                Próxima
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
           </div>
-
-          {readerSettings.readingMode !== "webtoon" && (
-            <Button
-              variant="manga"
-              onClick={goToNextPage}
-            >
-              Próxima
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
         </div>
       </div>
 
