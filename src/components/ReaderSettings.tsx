@@ -69,8 +69,8 @@ const ReaderSettings = ({ settings, onSettingsChange }: ReaderSettingsProps) => 
           <Settings className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 bg-manga-surface-elevated border-border/50" align="end">
-        <div className="space-y-4">
+      <PopoverContent className="w-80 md:w-96 bg-manga-surface-elevated border-border/50 max-h-[85vh] overflow-y-auto" align="end" side="bottom" sideOffset={8}>
+        <div className="space-y-4 p-1">
           <div className="text-lg font-semibold text-manga-text-primary">
             Configurações de Leitura
           </div>
