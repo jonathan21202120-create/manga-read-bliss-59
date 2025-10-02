@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 
 interface ReadingProgress {
   mangaId: string;
@@ -21,7 +20,6 @@ export const useReadingProgress = () => {
   const [progress, setProgress] = useState<ReadingProgress[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const fetchProgress = useCallback(async () => {
     if (!user) return;
@@ -88,7 +86,7 @@ export const useReadingProgress = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   const updateProgress = useCallback(async (
     mangaId: string,
@@ -134,7 +132,7 @@ export const useReadingProgress = () => {
         console.error('Error saving to localStorage:', localError);
       }
     }
-  }, [user, fetchProgress, toast]);
+  }, [user, fetchProgress]);
 
   const getLastReadChapter = (mangaId: string): ReadingProgress | null => {
     return progress.find(p => p.mangaId === mangaId) || null;
