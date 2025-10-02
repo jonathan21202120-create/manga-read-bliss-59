@@ -38,9 +38,11 @@ const MangaReader = () => {
   const [manga, setManga] = useState<Manga | null>(null);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimerRef = useRef<NodeJS.Timeout>();
   const [readerSettings, setReaderSettings] = useState<ReaderSettingsType>({
     readingMode: "webtoon",
     readingDirection: "ltr",
@@ -201,34 +203,55 @@ const MangaReader = () => {
     }
   }, [user, id, chapterId, currentChapter, currentPage, updateProgress]);
 
-  // Auto-hide controls
+  // Triple-click system to show/hide controls
   useEffect(() => {
-    const resetHideTimer = () => {
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current);
+    const handleClick = (e: MouseEvent) => {
+      // Ignore clicks on buttons and interactive elements
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('select') || target.closest('[role="dialog"]')) {
+        return;
       }
-      setShowControls(true);
-      hideControlsTimeout.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
+
+      // Clear existing timer
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+
+      // Increment click count
+      const newCount = clickCount + 1;
+      setClickCount(newCount);
+
+      // Check if we reached 3 clicks
+      if (newCount >= 3) {
+        setShowControls(!showControls);
+        setClickCount(0);
+        
+        // Auto-hide after 5 seconds when showing
+        if (!showControls) {
+          hideControlsTimeout.current = setTimeout(() => {
+            setShowControls(false);
+          }, 5000);
+        }
+      } else {
+        // Reset counter after 800ms of no clicks
+        clickTimerRef.current = setTimeout(() => {
+          setClickCount(0);
+        }, 800);
+      }
     };
 
-    const handleMouseMove = () => resetHideTimer();
-    const handleClick = () => resetHideTimer();
-
-    window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("click", handleClick);
 
-    resetHideTimer();
-
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("click", handleClick);
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current);
       }
     };
-  }, []);
+  }, [clickCount, showControls]);
 
   const getCurrentChapterIndex = () => {
     if (!manga || !currentChapter) return -1;
@@ -492,17 +515,19 @@ const MangaReader = () => {
 
       </div>
 
-      {/* Progress Bar - Always Visible */}
-      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-manga-surface/80 to-transparent">
-        <div className="flex items-center justify-between text-sm text-manga-text-secondary p-4 pb-2">
+      {/* Progress Bar */}
+      <div className={`fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-manga-surface/95 to-transparent backdrop-blur-sm transition-transform duration-300 ${
+        showControls ? "translate-y-0" : "-translate-y-full"
+      }`}>
+        <div className="flex items-center justify-between text-sm text-manga-text-secondary px-4 pt-3 pb-2">
           {readerSettings.showPageNumbers && (
-            <span>Página {currentPage + 1} de {currentChapter.pages.length}</span>
+            <span className="font-medium">Página {currentPage + 1} de {currentChapter.pages.length}</span>
           )}
-          <span>{Math.round(progress)}%</span>
+          <span className="font-medium">{Math.round(progress)}%</span>
         </div>
-        <div className="w-full bg-manga-surface-elevated/30 h-1">
+        <div className="w-full bg-manga-surface-elevated/30 h-1.5">
           <div
-            className="bg-gradient-primary h-1 transition-all duration-300"
+            className="bg-gradient-primary h-1.5 transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -624,7 +649,9 @@ const MangaReader = () => {
       )}
 
       {/* Bottom Controls - Fixed Navigation Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-manga-surface/95 to-transparent backdrop-blur-sm p-4">
+      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-manga-surface/95 to-transparent backdrop-blur-sm p-4 transition-transform duration-300 ${
+        showControls ? "translate-y-0" : "translate-y-full"
+      }`}>
         <div className="flex items-center justify-center gap-3">
           <Button
             variant="manga-outline"
