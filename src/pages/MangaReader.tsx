@@ -7,6 +7,8 @@ import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import ReaderSettings, { ReaderSettingsType } from "@/components/ReaderSettings";
+import { ProtectedImage } from "@/components/ProtectedImage";
+import { useSecurityProtection } from "@/hooks/useSecurityProtection";
 import {
   ArrowLeft,
   Home,
@@ -59,6 +61,9 @@ const MangaReader = () => {
     zoom: 100,
   });
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
+
+  // Apply security protections
+  useSecurityProtection();
 
   // Mock data para páginas (usando placeholders)
   const generateMockPages = (chapterNumber: number, pageCount: number = 20): string[] => {
