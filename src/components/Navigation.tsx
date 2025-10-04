@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   Shield,
-  LogOut
+  LogOut,
+  DollarSign
 } from "lucide-react";
 
 interface NavigationProps {
@@ -46,6 +47,7 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
   const baseNavItems = [
     { icon: Home, label: "Início", href: "/" },
     { icon: BookOpen, label: "Biblioteca", href: "/library" },
+    { icon: DollarSign, label: "Doações", href: "/donations" },
     { icon: Heart, label: "Favoritos", href: "/favorites" },
     { icon: User, label: "Perfil", href: "/profile" },
   ];
