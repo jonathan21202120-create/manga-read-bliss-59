@@ -2,3 +2,6 @@ project_id = "lbaxfdonvrwqbpwovetl"
 
 [functions.upload-to-wasabi]
 verify_jwt = true
+
+[functions.rate-limiter]
+verify_jwt = false

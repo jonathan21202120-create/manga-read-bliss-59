@@ -7,15 +7,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Configurações de segurança
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+const ALLOWED_FOLDERS = ['manga-covers', 'manga-pages', 'avatars', 'uploads'];
+
+// Rate limiting
+const uploadRateLimit = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minuto
+const MAX_UPLOADS_PER_MINUTE = 10;
+
+function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const userLimit = uploadRateLimit.get(userId);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    uploadRateLimit.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: MAX_UPLOADS_PER_MINUTE - 1 };
+  }
+
+  if (userLimit.count >= MAX_UPLOADS_PER_MINUTE) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  userLimit.count++;
+  uploadRateLimit.set(userId, userLimit);
+  return { allowed: true, remaining: MAX_UPLOADS_PER_MINUTE - userLimit.count };
+}
+
+function sanitizeFilename(filename: string): string {
+  return filename
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .replace(/\.{2,}/g, '.')
+    .substring(0, 100);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verificar autenticação do usuário
+    // Verificação de autenticação
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -30,10 +66,33 @@ serve(async (req) => {
 
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) {
+      console.error('User not authenticated');
       return new Response(JSON.stringify({ error: 'Não autenticado' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Rate limiting check
+    const rateLimitCheck = checkRateLimit(user.id);
+    if (!rateLimitCheck.allowed) {
+      console.warn(`Rate limit exceeded for user ${user.id}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite de uploads excedido', 
+          message: 'Muitos uploads. Aguarde antes de tentar novamente.',
+          retryAfter: 60 
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '60',
+            'X-RateLimit-Remaining': String(rateLimitCheck.remaining)
+          } 
+        }
+      );
     }
 
     // Verificar se o usuário tem perfil (qualquer usuário autenticado pode fazer upload)
@@ -56,10 +115,47 @@ serve(async (req) => {
     const folder = formData.get('folder') as string || 'uploads';
     
     if (!file) {
+      console.error('No file provided in request');
       return new Response(JSON.stringify({ error: 'Nenhum arquivo enviado' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Validar tipo de arquivo
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      console.warn(`Invalid file type: ${file.type}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Tipo de arquivo inválido', 
+          message: `Apenas ${ALLOWED_IMAGE_TYPES.join(', ')} são permitidos` 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validar tamanho do arquivo
+    if (file.size > MAX_FILE_SIZE || file.size <= 0) {
+      console.warn(`File size invalid: ${file.size} bytes`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Tamanho de arquivo inválido', 
+          message: `O arquivo deve ter menos de ${MAX_FILE_SIZE / 1024 / 1024}MB` 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validar pasta de destino
+    if (!ALLOWED_FOLDERS.includes(folder)) {
+      console.error(`Invalid folder: ${folder}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Pasta inválida', 
+          message: `A pasta deve ser uma de: ${ALLOWED_FOLDERS.join(', ')}` 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Configurar cliente S3 para Cloudflare R2
@@ -93,11 +189,27 @@ serve(async (req) => {
       forcePathStyle: true,
     });
 
-    // Gerar nome único para o arquivo
+    // Gerar nome único e seguro para o arquivo
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.name.split('.').pop();
+    const sanitizedName = sanitizeFilename(file.name);
+    const fileExtension = sanitizedName.split('.').pop()?.toLowerCase() || 'jpg';
+    
+    // Validar extensão
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    if (!validExtensions.includes(fileExtension)) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Extensão de arquivo inválida', 
+          message: 'Apenas jpg, jpeg, png e webp são permitidos' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const fileName = `${folder}/${timestamp}_${randomString}.${fileExtension}`;
+    
+    console.log(`Uploading file: ${fileName}, size: ${file.size} bytes, type: ${file.type}`);
 
     // Converter File para ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();

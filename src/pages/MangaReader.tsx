@@ -541,54 +541,29 @@ const MangaReader = () => {
           style={{ transform: readerSettings.readingMode === "webtoon" ? "none" : `scale(${readerSettings.zoom / 100})` }}
         >
           {readerSettings.readingMode === "single" ? (
-            <img
+            <ProtectedImage
               src={currentChapter.pages[currentPage]}
               alt={`Página ${currentPage + 1}`}
-              className={`max-w-full max-h-[calc(100vh-200px)] object-contain rounded-lg shadow-elevated transition-all duration-${readerSettings.transitionSpeed} ${
+              className={`max-w-full max-h-[calc(100vh-200px)] rounded-lg shadow-elevated transition-all duration-${readerSettings.transitionSpeed} ${
                 readerSettings.pagefit === "width" ? "w-full" :
                 readerSettings.pagefit === "height" ? "h-full" :
                 readerSettings.pagefit === "screen" ? "w-screen h-screen" : ""
               }`}
-              style={{
-                filter: `
-                  brightness(${readerSettings.brightness}%) 
-                  contrast(${readerSettings.contrast}%) 
-                  ${readerSettings.invertColors ? 'invert(1)' : ''} 
-                  ${readerSettings.grayscale ? 'grayscale(1)' : ''}
-                `
-              }}
-              draggable={false}
+              priority={true}
             />
           ) : readerSettings.readingMode === "double" ? (
             <div className={`flex gap-2 ${readerSettings.readingDirection === "rtl" ? "flex-row-reverse" : ""}`}>
-              <img
+              <ProtectedImage
                 src={currentChapter.pages[currentPage]}
                 alt={`Página ${currentPage + 1}`}
-                className={`max-w-[50vw] max-h-[calc(100vh-200px)] object-contain rounded-lg shadow-elevated transition-all duration-${readerSettings.transitionSpeed}`}
-                style={{
-                  filter: `
-                    brightness(${readerSettings.brightness}%) 
-                    contrast(${readerSettings.contrast}%) 
-                    ${readerSettings.invertColors ? 'invert(1)' : ''} 
-                    ${readerSettings.grayscale ? 'grayscale(1)' : ''}
-                  `
-                }}
-                draggable={false}
+                className={`max-w-[50vw] max-h-[calc(100vh-200px)] rounded-lg shadow-elevated transition-all duration-${readerSettings.transitionSpeed}`}
+                priority={true}
               />
               {currentPage + 1 < currentChapter.pages.length && (
-                <img
+                <ProtectedImage
                   src={currentChapter.pages[currentPage + 1]}
                   alt={`Página ${currentPage + 2}`}
-                  className={`max-w-[50vw] max-h-[calc(100vh-200px)] object-contain rounded-lg shadow-elevated transition-all duration-${readerSettings.transitionSpeed}`}
-                  style={{
-                    filter: `
-                      brightness(${readerSettings.brightness}%) 
-                      contrast(${readerSettings.contrast}%) 
-                      ${readerSettings.invertColors ? 'invert(1)' : ''} 
-                      ${readerSettings.grayscale ? 'grayscale(1)' : ''}
-                    `
-                  }}
-                  draggable={false}
+                  className={`max-w-[50vw] max-h-[calc(100vh-200px)] rounded-lg shadow-elevated transition-all duration-${readerSettings.transitionSpeed}`}
                 />
               )}
             </div>
@@ -596,24 +571,15 @@ const MangaReader = () => {
             /* Webtoon Mode - Vertical Scroll */
             <div className="flex flex-col items-center gap-0 max-w-3xl mx-auto px-0 md:px-4">
               {currentChapter.pages.map((page, index) => (
-                <img
+                <ProtectedImage
                   key={index}
                   src={page}
                   alt={`Página ${index + 1}`}
-                  className={`w-full object-contain shadow-none md:shadow-lg transition-all duration-${readerSettings.transitionSpeed} ${
+                  className={`w-full shadow-none md:shadow-lg transition-all duration-${readerSettings.transitionSpeed} ${
                     readerSettings.pagefit === "width" ? "max-w-full" :
                     readerSettings.pagefit === "original" ? "max-w-none" : "max-w-full"
                   }`}
-                  style={{
-                    filter: `
-                      brightness(${readerSettings.brightness}%) 
-                      contrast(${readerSettings.contrast}%) 
-                      ${readerSettings.invertColors ? 'invert(1)' : ''} 
-                      ${readerSettings.grayscale ? 'grayscale(1)' : ''}
-                    `,
-                    transform: `scale(${readerSettings.zoom / 100})`
-                  }}
-                  draggable={false}
+                  priority={index < 3}
                 />
               ))}
             </div>
