@@ -291,14 +291,6 @@ export type Database = {
       }
     }
     Functions: {
-      get_public_profile: {
-        Args: { p_user_id: string }
-        Returns: {
-          avatar_url: string
-          nome: string
-          user_id: string
-        }[]
-      }
       get_user_reading_progress: {
         Args: { p_user_id: string }
         Returns: {
