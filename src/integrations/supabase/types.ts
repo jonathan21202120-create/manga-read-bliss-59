@@ -271,9 +271,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          nome: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          nome?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          nome?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_public_profile: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar_url: string
+          nome: string
+          user_id: string
+        }[]
+      }
       get_user_reading_progress: {
         Args: { p_user_id: string }
         Returns: {
