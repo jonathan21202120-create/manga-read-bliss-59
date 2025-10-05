@@ -163,7 +163,7 @@ const MangaDetails = () => {
         if (commentsData && commentsData.length > 0) {
           const userIds = commentsData.map(comment => comment.user_id);
           const { data: profilesData } = await supabase
-            .from('profiles')
+            .from('public_profiles')
             .select('user_id, nome, avatar_url')
             .in('user_id', userIds);
             
@@ -279,7 +279,7 @@ const MangaDetails = () => {
       
       // Get user profile for the new comment
       const { data: profileData } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('nome, avatar_url')
         .eq('user_id', user.id)
         .single();

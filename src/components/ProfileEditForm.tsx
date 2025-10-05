@@ -95,13 +95,13 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ open, onOpenCh
       setLoading(true);
       setErrors({});
 
-      // Check if name is unique before validation
+      // Check if name is unique before validation using public view
       const { data: existingProfile } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id')
         .eq('nome', formData.nome)
         .neq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingProfile) {
         setErrors({ nome: 'Este nome já está sendo usado por outro usuário' });
