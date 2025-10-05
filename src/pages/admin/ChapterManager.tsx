@@ -51,6 +51,7 @@ export default function ChapterManager() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAiSorting, setIsAiSorting] = useState(false);
   const [newChapter, setNewChapter] = useState({
     number: 1,
     title: "",
@@ -370,6 +371,73 @@ export default function ChapterManager() {
     });
   };
 
+  const handleAiSort = async () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Carregue pelo menos uma imagem antes de usar a IA.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAiSorting(true);
+    toast({
+      title: "🔄 Organizando páginas pela IA…",
+      description: "Aguarde enquanto analisamos as imagens."
+    });
+
+    try {
+      // Converter imagens para base64
+      const imagesData = await Promise.all(
+        selectedFiles.map(async (file) => {
+          return new Promise<{ name: string; data: string }>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve({
+                name: file.name,
+                data: reader.result as string
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      // Chamar edge function
+      const { data, error } = await supabase.functions.invoke('sort-manga-pages', {
+        body: { images: imagesData }
+      });
+
+      if (error) throw error;
+
+      if (data?.order && Array.isArray(data.order)) {
+        // Reorganizar arquivos conforme a ordem retornada pela IA
+        const orderedFiles = data.order
+          .map((name: string) => selectedFiles.find(f => f.name === name))
+          .filter(Boolean) as File[];
+        
+        setSelectedFiles(orderedFiles);
+        
+        toast({
+          title: "✅ Páginas reorganizadas!",
+          description: "A IA organizou automaticamente as páginas do capítulo."
+        });
+      } else {
+        throw new Error('Resposta inválida da IA');
+      }
+    } catch (error: any) {
+      console.error('Erro ao organizar com IA:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível organizar as páginas com a IA.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAiSorting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-surface">
       <Navigation />
@@ -422,8 +490,18 @@ export default function ChapterManager() {
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-manga-surface border-border/50 max-w-2xl">
-              <DialogHeader>
+              <DialogHeader className="relative">
                 <DialogTitle className="text-manga-text-primary">Criar Novo Capítulo</DialogTitle>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleAiSort}
+                  disabled={isAiSorting || selectedFiles.length === 0}
+                  className="absolute top-0 right-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full px-3 py-1 text-xs shadow-lg hover:shadow-xl transition-all"
+                  title="Organizar páginas com IA"
+                >
+                  {isAiSorting ? "🔄" : "🧠"} IA
+                </Button>
               </DialogHeader>
               
               <div className="space-y-6">
