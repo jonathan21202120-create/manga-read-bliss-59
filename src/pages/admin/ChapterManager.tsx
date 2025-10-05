@@ -224,7 +224,7 @@ export default function ChapterManager() {
     try {
       // Upload pages to storage
       const uploadResults = await uploadMultipleFiles(selectedFiles, {
-        folder: `manga-${mangaId}/chapter-${newChapter.number}`,
+        folder: 'manga-pages',
         allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
         maxSizeBytes: 10 * 1024 * 1024 // 10MB per image
       });
