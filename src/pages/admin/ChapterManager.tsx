@@ -50,6 +50,7 @@ export default function ChapterManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   const [newChapter, setNewChapter] = useState({
     number: 1,
     title: "",
@@ -125,6 +126,42 @@ export default function ChapterManager() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setSelectedFiles(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files).filter(file => 
+      file.type.startsWith('image/')
+    );
+
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      toast({
+        title: "Arquivos adicionados",
+        description: `${files.length} imagem(ns) selecionada(s)`
+      });
+    } else {
+      toast({
+        title: "Aviso",
+        description: "Por favor, arraste apenas arquivos de imagem",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCreateChapter = async () => {
@@ -363,29 +400,54 @@ export default function ChapterManager() {
                   <Label className="text-manga-text-secondary">
                     Páginas do Capítulo
                   </Label>
-                  <div className="border-2 border-dashed border-border/50 rounded-lg p-6">
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-8 transition-all ${
+                      isDragging 
+                        ? 'border-manga-primary bg-manga-primary/10 scale-[1.02]' 
+                        : 'border-border/50 hover:border-manga-primary/50'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <div className="text-center">
-                      <FileImage className="h-8 w-8 text-manga-text-muted mx-auto mb-2" />
-                      <p className="text-sm text-manga-text-muted mb-4">
-                        Faça upload das páginas do capítulo
+                      <Upload className={`h-12 w-12 mx-auto mb-3 transition-colors ${
+                        isDragging ? 'text-manga-primary' : 'text-manga-text-muted'
+                      }`} />
+                      <p className="text-lg font-medium text-manga-text-primary mb-2">
+                        {isDragging ? 'Solte as imagens aqui!' : 'Arraste e solte as imagens'}
                       </p>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="w-full text-sm text-manga-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-manga-primary file:text-primary-foreground hover:file:opacity-90"
-                      />
+                      <p className="text-sm text-manga-text-muted mb-4">
+                        ou clique para selecionar do seu computador
+                      </p>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          id="file-upload"
+                        />
+                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-manga-primary text-primary-foreground hover:opacity-90 transition-opacity">
+                          <FileImage className="h-4 w-4" />
+                          Escolher arquivos
+                        </span>
+                      </label>
                     </div>
                     {selectedFiles.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm text-manga-text-secondary mb-2">
-                          {selectedFiles.length} arquivo(s) selecionado(s):
+                      <div className="mt-6 pt-6 border-t border-border/30">
+                        <p className="text-sm font-medium text-manga-text-secondary mb-3">
+                          {selectedFiles.length} imagem(ns) selecionada(s)
                         </p>
-                        <div className="max-h-32 overflow-y-auto space-y-1">
+                        <div className="max-h-40 overflow-y-auto space-y-2">
                           {Array.from(selectedFiles).map((file, index) => (
-                            <div key={index} className="text-xs text-manga-text-muted">
-                              {file.name}
+                            <div key={index} className="flex items-center gap-2 text-xs bg-manga-surface-elevated/50 px-3 py-2 rounded">
+                              <FileImage className="h-3 w-3 text-manga-primary flex-shrink-0" />
+                              <span className="text-manga-text-muted truncate">{file.name}</span>
+                              <span className="text-manga-text-muted/50 ml-auto flex-shrink-0">
+                                {(file.size / 1024).toFixed(0)}KB
+                              </span>
                             </div>
                           ))}
                         </div>
