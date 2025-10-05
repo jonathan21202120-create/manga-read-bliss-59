@@ -93,12 +93,8 @@ export const useWasabiUpload = () => {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const fileOptions = {
-        ...options,
-        folder: options?.folder ? `${options.folder}/${i + 1}` : `page-${i + 1}`
-      };
       
-      const result = await uploadFile(file, fileOptions);
+      const result = await uploadFile(file, options);
       if (result) {
         results.push(result);
       }
