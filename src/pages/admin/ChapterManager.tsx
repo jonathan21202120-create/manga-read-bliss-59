@@ -43,7 +43,7 @@ export default function ChapterManager() {
   const { mangaId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { uploadMultipleFiles, isUploading } = useWasabiUpload();
+  const { uploadMultipleFiles, deleteFile, isUploading } = useWasabiUpload();
   
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [mangaInfo, setMangaInfo] = useState<MangaInfo | null>(null);
@@ -304,6 +304,30 @@ export default function ChapterManager() {
 
   const handleDeleteChapter = async (id: string) => {
     try {
+      // Buscar URLs das páginas do capítulo antes de deletar
+      const chapter = chapters.find(c => c.id === id);
+      
+      if (chapter?.pageUrls && chapter.pageUrls.length > 0) {
+        // Deletar cada imagem do R2
+        const deletePromises = chapter.pageUrls.map(async (url) => {
+          try {
+            // Extrair o caminho do arquivo da URL
+            // Exemplo: https://arquivos.culto-demoniaco.online/culto-do-demonio-celestial/manga-pages/arquivo.jpg
+            // Resultado: manga-pages/arquivo.jpg
+            const urlParts = url.split('/');
+            const folderAndFile = urlParts.slice(-2).join('/'); // Pega as últimas 2 partes
+            
+            console.log('Deletando arquivo:', folderAndFile);
+            await deleteFile(folderAndFile);
+          } catch (error) {
+            console.error('Erro ao deletar imagem:', url, error);
+          }
+        });
+        
+        await Promise.all(deletePromises);
+      }
+
+      // Deletar registro do banco de dados
       const { error } = await supabase
         .from('chapters')
         .delete()
@@ -314,7 +338,7 @@ export default function ChapterManager() {
       setChapters(prev => prev.filter(c => c.id !== id));
       toast({
         title: "Sucesso",
-        description: "Capítulo removido com sucesso!"
+        description: "Capítulo e imagens removidos com sucesso!"
       });
     } catch (error: any) {
       console.error('Error deleting chapter:', error);
