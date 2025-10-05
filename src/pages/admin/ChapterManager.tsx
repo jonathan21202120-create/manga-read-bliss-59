@@ -123,9 +123,40 @@ export default function ChapterManager() {
     fetchData();
   }, [mangaId]);
 
+  // Função para ordenar arquivos por nome (numérico quando possível)
+  const sortFilesByName = (files: File[]): File[] => {
+    return files.sort((a, b) => {
+      // Extrair números do nome dos arquivos
+      const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
+      const numB = parseInt(b.name.match(/\d+/)?.[0] || '0');
+      
+      // Se ambos têm números, ordenar numericamente
+      if (numA && numB && numA !== numB) {
+        return numA - numB;
+      }
+      
+      // Caso contrário, ordenar alfabeticamente
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setSelectedFiles(files);
+    const sortedFiles = sortFilesByName(files);
+    
+    // Mesclar com arquivos existentes se houver
+    const mergedFiles = [...selectedFiles, ...sortedFiles];
+    const uniqueFiles = Array.from(new Set(mergedFiles.map(f => f.name)))
+      .map(name => mergedFiles.find(f => f.name === name)!);
+    
+    setSelectedFiles(sortFilesByName(uniqueFiles));
+    
+    if (files.length > 0) {
+      toast({
+        title: "Imagens adicionadas",
+        description: `${files.length} imagem(ns) adicionada(s) e ordenada(s) automaticamente`
+      });
+    }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -150,10 +181,18 @@ export default function ChapterManager() {
     );
 
     if (files.length > 0) {
-      setSelectedFiles(files);
+      const sortedFiles = sortFilesByName(files);
+      
+      // Mesclar com arquivos existentes se houver
+      const mergedFiles = [...selectedFiles, ...sortedFiles];
+      const uniqueFiles = Array.from(new Set(mergedFiles.map(f => f.name)))
+        .map(name => mergedFiles.find(f => f.name === name)!);
+      
+      setSelectedFiles(sortFilesByName(uniqueFiles));
+      
       toast({
-        title: "Arquivos adicionados",
-        description: `${files.length} imagem(ns) selecionada(s)`
+        title: "Imagens adicionadas",
+        description: `${files.length} imagem(ns) adicionada(s) e ordenada(s) automaticamente`
       });
     } else {
       toast({
@@ -162,6 +201,14 @@ export default function ChapterManager() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    toast({
+      title: "Imagem removida",
+      description: "A imagem foi removida da lista"
+    });
   };
 
   const handleCreateChapter = async () => {
@@ -415,10 +462,10 @@ export default function ChapterManager() {
                         isDragging ? 'text-manga-primary' : 'text-manga-text-muted'
                       }`} />
                       <p className="text-lg font-medium text-manga-text-primary mb-2">
-                        {isDragging ? 'Solte as imagens aqui!' : 'Arraste e solte as imagens'}
+                        {isDragging ? 'Solte as imagens aqui!' : 'Arraste e solte múltiplas imagens'}
                       </p>
                       <p className="text-sm text-manga-text-muted mb-4">
-                        ou clique para selecionar do seu computador
+                        As imagens serão ordenadas automaticamente por nome/número
                       </p>
                       <label className="cursor-pointer">
                         <input
@@ -437,17 +484,48 @@ export default function ChapterManager() {
                     </div>
                     {selectedFiles.length > 0 && (
                       <div className="mt-6 pt-6 border-t border-border/30">
-                        <p className="text-sm font-medium text-manga-text-secondary mb-3">
-                          {selectedFiles.length} imagem(ns) selecionada(s)
-                        </p>
-                        <div className="max-h-40 overflow-y-auto space-y-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-sm font-medium text-manga-text-secondary">
+                            {selectedFiles.length} imagem(ns) selecionada(s) (ordenadas)
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedFiles([])}
+                            className="text-xs h-7"
+                          >
+                            Limpar tudo
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto">
                           {Array.from(selectedFiles).map((file, index) => (
-                            <div key={index} className="flex items-center gap-2 text-xs bg-manga-surface-elevated/50 px-3 py-2 rounded">
-                              <FileImage className="h-3 w-3 text-manga-primary flex-shrink-0" />
-                              <span className="text-manga-text-muted truncate">{file.name}</span>
-                              <span className="text-manga-text-muted/50 ml-auto flex-shrink-0">
-                                {(file.size / 1024).toFixed(0)}KB
-                              </span>
+                            <div key={index} className="relative group">
+                              <div className="aspect-[3/4] rounded-lg overflow-hidden bg-manga-surface-elevated border border-border/30">
+                                <img
+                                  src={URL.createObjectURL(file)}
+                                  alt={`Página ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleRemoveFile(index)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                              <div className="mt-1 text-center">
+                                <p className="text-xs font-medium text-manga-text-primary">
+                                  Pág. {index + 1}
+                                </p>
+                                <p className="text-xs text-manga-text-muted truncate">
+                                  {file.name}
+                                </p>
+                              </div>
                             </div>
                           ))}
                         </div>
