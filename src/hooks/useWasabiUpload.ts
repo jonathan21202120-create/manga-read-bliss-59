@@ -89,20 +89,72 @@ export const useWasabiUpload = () => {
     files: File[],
     options?: UploadOptions
   ): Promise<UploadResult[]> => {
-    const results: UploadResult[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      const result = await uploadFile(file, options);
-      if (result) {
-        results.push(result);
-      }
-      // Atualizar progresso geral
-      setUploadProgress(Math.round(((i + 1) / files.length) * 100));
-    }
+    setIsUploading(true);
+    setUploadProgress(0);
 
-    return results;
+    try {
+      // Upload todas as imagens em paralelo
+      const uploadPromises = files.map(async (file, index) => {
+        try {
+          // Preparar FormData
+          const formData = new FormData();
+          formData.append('file', file);
+          if (options?.folder) {
+            formData.append('folder', options.folder);
+          }
+
+          // Obter token de autenticação
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            throw new Error('Usuário não autenticado');
+          }
+
+          // Chamar edge function
+          const { data, error } = await supabase.functions.invoke('upload-to-wasabi', {
+            body: formData,
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (error) throw error;
+          
+          return data as UploadResult;
+        } catch (error: any) {
+          console.error(`Erro no upload do arquivo ${index + 1}:`, error);
+          return null;
+        }
+      });
+
+      // Aguardar todos os uploads completarem
+      const results = await Promise.all(uploadPromises);
+      
+      setUploadProgress(100);
+      
+      // Filtrar resultados nulos (uploads que falharam)
+      const successfulUploads = results.filter((result): result is UploadResult => result !== null);
+      
+      if (successfulUploads.length < files.length) {
+        toast({
+          title: 'Alguns uploads falharam',
+          description: `${successfulUploads.length} de ${files.length} arquivos foram enviados com sucesso`,
+          variant: 'destructive',
+        });
+      }
+
+      return successfulUploads;
+    } catch (error: any) {
+      console.error('Erro no upload múltiplo:', error);
+      toast({
+        title: 'Erro no upload',
+        description: error.message || 'Não foi possível fazer upload dos arquivos',
+        variant: 'destructive',
+      });
+      return [];
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
+    }
   };
 
   return {
