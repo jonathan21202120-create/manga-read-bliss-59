@@ -413,16 +413,44 @@ export default function ChapterManager() {
 
       if (data?.order && Array.isArray(data.order)) {
         // Reorganizar arquivos conforme a ordem retornada pela IA
-        const orderedFiles = data.order
-          .map((name: string) => selectedFiles.find(f => f.name === name))
-          .filter(Boolean) as File[];
+        const orderedFiles: File[] = [];
+        const unmatchedFiles: File[] = [];
         
-        setSelectedFiles(orderedFiles);
+        // Mapear os arquivos na ordem sugerida pela IA
+        for (const name of data.order) {
+          const file = selectedFiles.find(f => f.name === name);
+          if (file) {
+            orderedFiles.push(file);
+          } else {
+            console.warn(`Arquivo não encontrado: ${name}`);
+          }
+        }
         
-        toast({
-          title: "✅ Páginas reorganizadas!",
-          description: "A IA organizou automaticamente as páginas do capítulo."
-        });
+        // Adicionar arquivos que não foram mencionados pela IA (para não perder nada)
+        for (const file of selectedFiles) {
+          if (!orderedFiles.includes(file)) {
+            unmatchedFiles.push(file);
+            console.warn(`Arquivo não ordenado pela IA: ${file.name}`);
+          }
+        }
+        
+        // Se conseguimos ordenar pelo menos metade dos arquivos, usar a ordem da IA
+        if (orderedFiles.length >= selectedFiles.length / 2) {
+          // Adicionar arquivos não ordenados no final
+          setSelectedFiles([...orderedFiles, ...unmatchedFiles]);
+          
+          const message = unmatchedFiles.length > 0 
+            ? `${orderedFiles.length} páginas organizadas. ${unmatchedFiles.length} páginas mantidas no final.`
+            : "Todas as páginas foram organizadas automaticamente!";
+          
+          toast({
+            title: "✅ Páginas reorganizadas!",
+            description: message
+          });
+        } else {
+          // Se a IA não conseguiu ordenar a maioria, manter ordem original
+          throw new Error(`IA conseguiu ordenar apenas ${orderedFiles.length} de ${selectedFiles.length} páginas`);
+        }
       } else {
         throw new Error('Resposta inválida da IA');
       }
