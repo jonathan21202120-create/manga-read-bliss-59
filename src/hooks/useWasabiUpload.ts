@@ -157,9 +157,45 @@ export const useWasabiUpload = () => {
     }
   };
 
+  const deleteFile = async (filePath: string): Promise<boolean> => {
+    try {
+      // Obter token de autenticação
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Chamar edge function para deletar do R2
+      const { data, error } = await supabase.functions.invoke('delete-from-r2', {
+        body: { filePath },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Arquivo deletado',
+        description: 'Arquivo removido com sucesso do armazenamento',
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao deletar arquivo:', error);
+      toast({
+        title: 'Erro ao deletar',
+        description: error.message || 'Não foi possível deletar o arquivo',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     uploadFile,
     uploadMultipleFiles,
+    deleteFile,
     isUploading,
     uploadProgress,
   };
