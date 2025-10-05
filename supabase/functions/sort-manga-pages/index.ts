@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { images } = await req.json();
+    const { images, mangaTitle, chapterNumber } = await req.json();
     
     if (!images || images.length === 0) {
       return new Response(
@@ -25,17 +25,63 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
+    console.log(`Processando ${images.length} imagens para ${mangaTitle} - Capítulo ${chapterNumber}`);
+    
     // Preparar conteúdo para o modelo de visão - criar mensagem com nomes ANTES das imagens
     const imageNames = images.map((img: { name: string; data: string }) => img.name);
+    
+    // Buscar referências externas da obra e capítulo
+    let externalContext = "";
+    try {
+      console.log('Buscando referências externas na web...');
+      const searchResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: `Pesquise informações sobre a ordem correta das páginas do capítulo ${chapterNumber} da obra "${mangaTitle}". 
+              
+Retorne um resumo breve sobre:
+1. A sequência típica de eventos neste capítulo
+2. Cenas principais em ordem cronológica
+3. Qualquer característica visual distintiva das páginas
+
+Se não encontrar informações específicas, descreva padrões típicos de manhwa/manga.`
+            }
+          ],
+          temperature: 0.3
+        })
+      });
+
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        externalContext = searchData.choices?.[0]?.message?.content || "";
+        console.log('Contexto externo obtido:', externalContext.substring(0, 200) + '...');
+      }
+    } catch (searchError) {
+      console.warn('Erro ao buscar contexto externo:', searchError);
+      // Continua sem o contexto externo
+    }
     
     const content = [
       {
         type: "text",
-        text: `TAREFA CRÍTICA: Você receberá ${images.length} imagens de páginas de manhwa/quadrinho que estão DESORDENADAS.
+        text: `TAREFA CRÍTICA DE ORDENAÇÃO VISUAL - ${mangaTitle} - Capítulo ${chapterNumber}
 
-IGNORE COMPLETAMENTE os nomes dos arquivos! Você DEVE analisar APENAS o CONTEÚDO VISUAL de cada imagem.
+Você receberá ${images.length} imagens de páginas de manhwa/quadrinho que estão COMPLETAMENTE DESORDENADAS.
 
-Os nomes dos arquivos são: ${imageNames.join(", ")}
+${externalContext ? `CONTEXTO DE REFERÊNCIA:\n${externalContext}\n\n` : ''}
+
+⚠️ REGRA ABSOLUTA: IGNORE COMPLETAMENTE OS NOMES DOS ARQUIVOS!
+Você DEVE analisar APENAS o CONTEÚDO VISUAL de cada imagem.
+
+Lista de arquivos (apenas para retorno): ${imageNames.join(", ")}
 
 COMO IDENTIFICAR A ORDEM CORRETA:
 

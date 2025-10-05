@@ -381,10 +381,19 @@ export default function ChapterManager() {
       return;
     }
 
+    if (!mangaInfo) {
+      toast({
+        title: "Erro",
+        description: "Informações do manga não carregadas",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsAiSorting(true);
     toast({
       title: "🔄 Organizando páginas pela IA…",
-      description: "Aguarde enquanto analisamos as imagens."
+      description: `Analisando ${selectedFiles.length} imagens e buscando referências de "${mangaInfo.title}"...`
     });
 
     try {
@@ -404,9 +413,13 @@ export default function ChapterManager() {
         })
       );
 
-      // Chamar edge function
+      // Chamar edge function com contexto completo
       const { data, error } = await supabase.functions.invoke('sort-manga-pages', {
-        body: { images: imagesData }
+        body: { 
+          images: imagesData,
+          mangaTitle: mangaInfo.title,
+          chapterNumber: newChapter.number
+        }
       });
 
       if (error) throw error;
