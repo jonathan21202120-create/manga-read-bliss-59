@@ -25,26 +25,62 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    // Preparar conteúdo para o modelo de visão
+    // Preparar conteúdo para o modelo de visão - criar mensagem com nomes ANTES das imagens
+    const imageNames = images.map((img: { name: string; data: string }) => img.name);
+    
     const content = [
       {
         type: "text",
-        text: `Você receberá uma lista de imagens de páginas de quadrinho ou manhwa.
-Analise o conteúdo visual de cada imagem para identificar a ordem correta.
-- A capa normalmente tem título grande, logotipo da obra ou cor diferente.
-- Páginas internas costumam ter balões de fala e podem conter números pequenos nos cantos (inferior ou superior).
-- Páginas com 'fim', 'to be continued' ou créditos são finais.
+        text: `TAREFA CRÍTICA: Você receberá ${images.length} imagens de páginas de manhwa/quadrinho que estão DESORDENADAS.
 
-Retorne APENAS um JSON válido no formato:
-{"order": ["nome1.jpg", "nome2.jpg", ...]}
+IGNORE COMPLETAMENTE os nomes dos arquivos! Você DEVE analisar APENAS o CONTEÚDO VISUAL de cada imagem.
 
-A ordem deve ser da primeira página (capa) até a última (final).
-Se não houver números visíveis, use a coerência visual (sequência de balões, personagens, e continuidade de cenas).`
+Os nomes dos arquivos são: ${imageNames.join(", ")}
+
+COMO IDENTIFICAR A ORDEM CORRETA:
+
+1. CAPA (primeira página):
+   - Título grande e destacado
+   - Arte diferenciada, mais elaborada
+   - Logo da obra ou do capítulo
+   - Geralmente tem cores mais vibrantes
+   - Pode ter o nome do autor
+
+2. PÁGINAS INTERNAS (ordem sequencial):
+   - Siga a CONTINUIDADE DA NARRATIVA VISUAL
+   - Balões de fala devem formar uma conversa coerente
+   - Expressões dos personagens devem progredir naturalmente
+   - Ações físicas devem ter sequência lógica (ex: pessoa se levantando → andando → chegando)
+   - Mudanças de cenário devem fazer sentido
+   - Se houver números de página, use-os apenas como referência secundária
+
+3. PÁGINA FINAL (última página):
+   - Pode ter "FIM", "TO BE CONTINUED", "CONTINUA..."
+   - Créditos do autor/artista
+   - Preview do próximo capítulo
+   - Cena de fechamento/conclusão
+
+INSTRUÇÕES DE ANÁLISE:
+- Observe cada imagem CUIDADOSAMENTE
+- Identifique personagens e suas posições
+- Siga o fluxo da conversa e das ações
+- A leitura geralmente é da direita para esquerda (manhwa) ou esquerda para direita (mangá)
+- Procure continuidade visual entre as páginas
+
+FORMATO DE RESPOSTA (OBRIGATÓRIO):
+Retorne APENAS um JSON válido com os nomes EXATOS dos arquivos:
+{"order": ["nome_exato_1.jpg", "nome_exato_2.png", ...]}
+
+Use os nomes EXATAMENTE como foram fornecidos acima. NÃO invente novos nomes!`
       },
+      ...images.map((img: { name: string; data: string }, index: number) => ({
+        type: "text",
+        text: `\n--- IMAGEM ${index + 1}: ${img.name} ---`
+      })),
       ...images.map((img: { name: string; data: string }) => ({
         type: "image_url",
         image_url: {
-          url: img.data // Base64 data URL
+          url: img.data
         }
       }))
     ];
@@ -58,13 +94,14 @@ Se não houver números visíveis, use a coerência visual (sequência de balõe
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           {
             role: "user",
             content: content
           }
-        ]
+        ],
+        temperature: 0.1 // Baixa temperatura para respostas mais consistentes
       })
     });
 
@@ -101,6 +138,17 @@ Se não houver números visíveis, use a coerência visual (sequência de balõe
       } else {
         parsedOrder = JSON.parse(aiResponse);
       }
+      
+      // Log para debug
+      console.log('Nomes enviados:', imageNames);
+      console.log('Nomes retornados pela IA:', parsedOrder.order);
+      
+      // Verificar se todos os nomes retornados existem nos enviados
+      const invalidNames = parsedOrder.order?.filter((name: string) => !imageNames.includes(name)) || [];
+      if (invalidNames.length > 0) {
+        console.warn('AVISO: IA retornou nomes que não existem:', invalidNames);
+      }
+      
     } catch (e) {
       console.error('Erro ao parsear resposta da IA:', e);
       return new Response(
