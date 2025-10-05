@@ -27,61 +27,90 @@ serve(async (req) => {
 
     console.log(`Processando ${images.length} imagens para ${mangaTitle} - Capítulo ${chapterNumber}`);
     
-    // Preparar conteúdo para o modelo de visão - criar mensagem com nomes ANTES das imagens
+    // Preparar conteúdo para o modelo de visão
     const imageNames = images.map((img: { name: string; data: string }) => img.name);
-    
-    // Buscar referências externas da obra e capítulo
-    let externalContext = "";
-    try {
-      console.log('Buscando referências externas na web...');
-      const searchResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "user",
-              content: `Pesquise informações sobre a ordem correta das páginas do capítulo ${chapterNumber} da obra "${mangaTitle}". 
-              
-Retorne um resumo breve sobre:
-1. A sequência típica de eventos neste capítulo
-2. Cenas principais em ordem cronológica
-3. Qualquer característica visual distintiva das páginas
-
-Se não encontrar informações específicas, descreva padrões típicos de manhwa/manga.`
-            }
-          ],
-          temperature: 0.3
-        })
-      });
-
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        externalContext = searchData.choices?.[0]?.message?.content || "";
-        console.log('Contexto externo obtido:', externalContext.substring(0, 200) + '...');
-      }
-    } catch (searchError) {
-      console.warn('Erro ao buscar contexto externo:', searchError);
-      // Continua sem o contexto externo
-    }
     
     const content = [
       {
         type: "text",
-        text: `TAREFA CRÍTICA DE ORDENAÇÃO VISUAL - ${mangaTitle} - Capítulo ${chapterNumber}
+        text: `TAREFA CRÍTICA: ORGANIZAR PÁGINAS DE MANHWA/MANGA POR ANÁLISE VISUAL
 
-Você receberá ${images.length} imagens de páginas de manhwa/quadrinho que estão COMPLETAMENTE DESORDENADAS.
+📖 Obra: ${mangaTitle} - Capítulo ${chapterNumber}
+🔢 Total de páginas: ${images.length}
 
-${externalContext ? `CONTEXTO DE REFERÊNCIA:\n${externalContext}\n\n` : ''}
+⚠️ REGRA #1: IGNORE COMPLETAMENTE OS NOMES DOS ARQUIVOS! 
+Analise SOMENTE o conteúdo visual de cada imagem.
 
-⚠️ REGRA ABSOLUTA: IGNORE COMPLETAMENTE OS NOMES DOS ARQUIVOS!
-Você DEVE analisar APENAS o CONTEÚDO VISUAL de cada imagem.
+🎯 SEU OBJETIVO:
+Organize as páginas na ordem CORRETA de leitura, seguindo a narrativa visual e textual.
 
-Lista de arquivos (apenas para retorno): ${imageNames.join(", ")}
+📋 COMO IDENTIFICAR A ORDEM:
+
+1️⃣ PRIMEIRA PÁGINA (Capa/Abertura):
+   ✓ Título grande e centralizado do capítulo
+   ✓ Arte mais elaborada ou diferenciada
+   ✓ Pode ter logo da obra
+   ✓ Geralmente sem diálogo ou com texto introdutório
+   ✓ Cores mais vibrantes ou destaque visual
+
+2️⃣ PÁGINAS INTERNAS (Sequência narrativa):
+   
+   CONTINUIDADE DE DIÁLOGO:
+   • Leia os balões de fala em SEQUÊNCIA
+   • Uma conversa deve fluir naturalmente entre páginas
+   • Se alguém faz uma pergunta, a resposta vem na página seguinte
+   • Diálogos interrompidos continuam na próxima página
+   
+   CONTINUIDADE DE AÇÃO:
+   • Personagem começando um movimento → completando o movimento
+   • Personagem entrando em cena → interagindo → saindo
+   • Sequência de combate: golpe → impacto → reação
+   • Mudanças de expressão: neutro → surpreso → reagindo
+   
+   CONTINUIDADE DE CENÁRIO:
+   • Mesma localização deve permanecer agrupada
+   • Transições visuais: interior → exterior, dia → noite
+   • Mudanças de cena devem fazer sentido cronológico
+   
+   LÓGICA TEMPORAL:
+   • Causa vem antes do efeito
+   • Preparação antes da ação
+   • Ação antes da consequência
+
+3️⃣ ÚLTIMA PÁGINA (Fechamento):
+   ✓ Pode ter "FIM", "CONTINUA...", "TO BE CONTINUED"
+   ✓ Créditos do autor/artista
+   ✓ Preview do próximo capítulo
+   ✓ Cena de conclusão/gancho narrativo
+   ✓ Arte de encerramento ou fade out
+
+🔍 METODOLOGIA DE ANÁLISE:
+
+PASSO 1: Identifique a primeira e última página
+PASSO 2: Encontre sequências de diálogo conectadas
+PASSO 3: Agrupe páginas por cena/localização
+PASSO 4: Ordene as cenas cronologicamente
+PASSO 5: Dentro de cada cena, ordene por fluxo de ação
+PASSO 6: Verifique se há continuidade visual entre todas as transições
+
+📐 DIREÇÃO DE LEITURA:
+• Manhwa (Coreano): Esquerda → Direita, Cima → Baixo
+• Manga (Japonês): Direita → Esquerda, Cima → Baixo
+• Webtoon vertical: Cima → Baixo
+
+❌ NÃO FAÇA:
+• Não se baseie em nomes de arquivo
+• Não assuma ordem alfabética
+• Não ignore continuidade narrativa
+• Não separe páginas de uma mesma cena
+
+✅ SAÍDA OBRIGATÓRIA:
+Retorne APENAS um JSON válido:
+{"order": ["nome_exato_1.webp", "nome_exato_2.webp", ...]}
+
+Use os nomes EXATOS: ${imageNames.join(", ")}
+
+🧠 ANALISE CADA IMAGEM CUIDADOSAMENTE E CONSTRUA A NARRATIVA VISUAL COMPLETA!
 
 COMO IDENTIFICAR A ORDEM CORRETA:
 
