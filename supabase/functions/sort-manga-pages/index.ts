@@ -77,95 +77,246 @@ Formato de resposta:
       console.warn('⚠️ Não foi possível buscar referência externa:', e);
     }
 
+    // Preparar análise detalhada de cada imagem ANTES de enviar para o modelo
+    const imageAnalysisPrompts = images.map((img: { name: string; data: string }, index: number) => ({
+      type: "text",
+      text: `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 IMAGEM ${index + 1}/${images.length}: ${img.name}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANALISE VISUAL OBRIGATÓRIA DESTA IMAGEM:
+
+1️⃣ IDENTIFICAÇÃO DA PÁGINA:
+   □ É página de ABERTURA? (título do capítulo, arte elaborada, logo)
+   □ É página de ENCERRAMENTO? ("FIM", "CONTINUA", créditos)
+   □ É página INTERMEDIÁRIA?
+
+2️⃣ DIÁLOGOS E TEXTOS:
+   □ Liste TODOS os textos/diálogos visíveis
+   □ Qual personagem está falando?
+   □ O diálogo é uma PERGUNTA, RESPOSTA, CONTINUAÇÃO ou INÍCIO de conversa?
+   □ Há narração/pensamento?
+
+3️⃣ AÇÃO VISUAL:
+   □ Descreva a ação principal acontecendo
+   □ A ação está INICIANDO, NO MEIO ou TERMINANDO?
+   □ Há continuidade com ação anterior ou posterior óbvia?
+
+4️⃣ CENÁRIO E PERSONAGENS:
+   □ Onde se passa a cena? (interior/exterior, local específico)
+   □ Quais personagens estão presentes?
+   □ Qual é o clima/tempo da cena? (dia/noite, luz/sombra)
+
+5️⃣ PISTAS DE ORDENAÇÃO:
+   □ Há elementos visuais que indicam "antes" ou "depois"?
+   □ Há linhas de movimento/velocidade indicando direção?
+   □ Há mudança de expressão facial dos personagens?
+`
+    }));
+
     const content = [
       {
         type: "text",
-        text: `TAREFA CRÍTICA: ORGANIZAR PÁGINAS DE MANHWA/MANGA POR ANÁLISE VISUAL DETALHADA
+        text: `╔══════════════════════════════════════════════════════════════════╗
+║  🎯 TAREFA CRÍTICA: ORGANIZAÇÃO PROFUNDA DE PÁGINAS DE MANGA    ║
+╚══════════════════════════════════════════════════════════════════╝
 
-📖 Obra: ${mangaTitle} - Capítulo ${chapterNumber}
-🔢 Total de páginas: ${images.length}
+📖 OBRA: ${mangaTitle}
+📗 CAPÍTULO: ${chapterNumber}
+📊 TOTAL DE PÁGINAS: ${images.length}
 
-${externalReference ? `🌐 REFERÊNCIA EXTERNA ENCONTRADA:\n${externalReference}\n\n` : ''}
+${externalReference ? `
+╔══════════════════════════════════════════════════════════════════╗
+║  🌐 REFERÊNCIA EXTERNA ENCONTRADA (USE COMO VALIDAÇÃO)          ║
+╚══════════════════════════════════════════════════════════════════╝
+${externalReference}
 
-⚠️ INSTRUÇÕES ABSOLUTAS:
-1. IGNORE COMPLETAMENTE OS NOMES DOS ARQUIVOS!
-2. Analise PROFUNDAMENTE o conteúdo visual de CADA imagem
-3. Use a referência externa acima (se disponível) para confirmar a ordem
-4. Se não tiver 100% de certeza, indique na resposta
+` : ''}
 
-🎯 METODOLOGIA DE ANÁLISE (EXECUTE TODOS OS PASSOS):
+╔══════════════════════════════════════════════════════════════════╗
+║  ⚠️  REGRAS ABSOLUTAS E INEGOCIÁVEIS                            ║
+╚══════════════════════════════════════════════════════════════════╝
 
-PASSO 1 - IDENTIFICAR PRIMEIRA PÁGINA:
-✓ Procure por título do capítulo em fonte grande/destacada
-✓ Arte de abertura mais elaborada ou colorida
-✓ Pode ter logo da obra ou número do capítulo
-✓ Geralmente tem menos ou nenhum diálogo
+🚫 REGRA #1: IGNORE **COMPLETAMENTE** OS NOMES DOS ARQUIVOS!
+   - Os nomes são hashes aleatórios SEM significado narrativo
+   - NUNCA use ordem alfabética ou numérica dos nomes
+   - Base sua decisão 100% no CONTEÚDO VISUAL
 
-PASSO 2 - IDENTIFICAR ÚLTIMA PÁGINA:
-✓ Palavras como "FIM", "CONTINUA", "TO BE CONTINUED", "Próximo Capítulo"
-✓ Créditos do scan/tradução
-✓ Preview ou arte de encerramento
-✓ Cena de conclusão narrativa
+🔍 REGRA #2: ANÁLISE VISUAL PROFUNDA E METICULOSA
+   - Leia TODO o texto em TODAS as imagens
+   - Analise TODAS as expressões faciais
+   - Observe TODOS os elementos de cenário
+   - Identifique TODAS as transições de ação
 
-PASSO 3 - ANALISAR CONTINUIDADE DE DIÁLOGO:
-Para CADA página, leia TODOS os balões de fala e verifique:
-• Uma pergunta em uma página → resposta deve estar na próxima
-• Conversa interrompida → continuação na próxima
-• Personagem falando → reação de outro personagem
-• Ordem natural de conversação
+✅ REGRA #3: VALIDAÇÃO COM REFERÊNCIA EXTERNA
+   - Se houver referência externa acima, use-a para VALIDAR sua ordem
+   - Compare sua análise visual com a sequência dos sites oficiais
+   - Em caso de dúvida, priorize a ordem da referência externa
 
-PASSO 4 - ANALISAR CONTINUIDADE DE AÇÃO:
-• Movimento iniciado → movimento completado
-• Personagem olhando para algo → mostra o que está olhando
-• Ataque/golpe → impacto → reação
-• Expressão neutra → surpresa → resposta emocional
-• Causa → efeito (temporal)
+📊 REGRA #4: CONFIDENCE HONESTO
+   - Só retorne confidence 0.9+ se tiver CERTEZA ABSOLUTA
+   - Se tiver dúvidas, reduza o confidence e explique no reasoning
+   - Confidence baixo (<0.7) indica que precisa de revisão manual
 
-PASSO 5 - ANALISAR CONTINUIDADE DE CENÁRIO:
-• Mesma localização/ambiente deve ficar agrupado
-• Interior → exterior (transição lógica)
-• Dia → noite (progressão temporal)
-• Mudanças de cena devem ter sentido cronológico
+╔══════════════════════════════════════════════════════════════════╗
+║  📝 METODOLOGIA PASSO A PASSO (OBRIGATÓRIA)                     ║
+╚══════════════════════════════════════════════════════════════════╝
 
-PASSO 6 - DIREÇÃO DE LEITURA:
-• Manhwa (Coreano): Esquerda → Direita, Cima → Baixo
-• Manga (Japonês): Direita → Esquerda, Cima → Baixo
-• Webtoon: Cima → Baixo (vertical contínuo)
+ETAPA 1: IDENTIFICAÇÃO DE PÁGINAS ESPECIAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Primeira página (ABERTURA):
+  ✓ Título do capítulo em destaque (ex: "Capítulo 5", "제5화")
+  ✓ Arte mais elaborada/colorida que as outras
+  ✓ Logo da obra ou número grande
+  ✓ Pouco ou nenhum diálogo
+  ✓ Pode ter frase de abertura épica
 
-PASSO 7 - VERIFICAÇÃO CRUZADA:
-• Compare sua ordem com a referência externa (se disponível)
-• Verifique se TODAS as transições fazem sentido
-• Releia os diálogos na ordem proposta
-• Confirme a progressão narrativa
+Última página (ENCERRAMENTO):
+  ✓ Texto de finalização: "FIM", "CONTINUA", "TO BE CONTINUED"
+  ✓ "Próximo capítulo em...", "Continue lendo..."
+  ✓ Créditos de tradução/scan (ex: "Tradução: X", "Scan: Y")
+  ✓ Preview do próximo capítulo
+  ✓ Arte de encerramento ou página em branco
 
-❌ ERROS QUE VOCÊ NUNCA DEVE COMETER:
-• Usar ordem alfabética ou numérica dos nomes de arquivo
-• Separar páginas de uma mesma cena/conversa
-• Inverter causa e efeito
-• Ignorar continuidade de diálogo
-• Colocar a resposta antes da pergunta
+ETAPA 2: CONTINUIDADE DE DIÁLOGO (CRÍTICO!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Para CADA par de páginas consecutivas, verifique:
 
-✅ FORMATO DE SAÍDA OBRIGATÓRIO:
+  1. PERGUNTA → RESPOSTA:
+     Página A: "O que você está fazendo aqui?"
+     Página B: "Eu vim te salvar!" ✓ CORRETA SEQUÊNCIA
+
+  2. FRASE INCOMPLETA → CONTINUAÇÃO:
+     Página A: "Eu preciso te dizer que..."
+     Página B: "...você é muito importante para mim" ✓ CORRETA
+
+  3. AÇÃO → REAÇÃO VERBAL:
+     Página A: [Personagem cai]
+     Página B: "Está tudo bem?!" ✓ CORRETA
+
+  4. CONVERSA ENTRE MÚLTIPLOS PERSONAGENS:
+     Siga o fluxo natural: A fala → B responde → A replica → B conclui
+
+ETAPA 3: CONTINUIDADE DE AÇÃO (VISUAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Sequência temporal correta de ações:
+
+  INÍCIO → MEIO → FIM:
+    Página 1: [Personagem prepara soco - punho para trás]
+    Página 2: [Soco em movimento - linhas de velocidade]
+    Página 3: [Impacto - efeito visual de batida]
+    Página 4: [Inimigo caindo - expressão de dor]
+
+  CAUSA → EFEITO:
+    Página A: [Pessoa abre porta]
+    Página B: [Luz entra no quarto escuro] ✓ CORRETA
+
+  OLHAR → FOCO:
+    Página A: [Personagem olha para cima, surpreso]
+    Página B: [Mostra o que ele vê: algo no céu] ✓ CORRETA
+
+ETAPA 4: CONTINUIDADE DE CENÁRIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Mantenha páginas do MESMO LOCAL juntas
+  • Transições lógicas: Quarto → Corredor → Sala → Exterior
+  • Progressão temporal: Dia → Entardecer → Noite
+  • Clima consistente: Se está chovendo, a chuva continua nas próximas páginas
+
+ETAPA 5: DIREÇÃO DE LEITURA (CULTURAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  📱 MANHWA (Coreano): ESQUERDA → DIREITA, CIMA → BAIXO
+     Balões de fala seguem ordem ocidental
+
+  📚 MANGA (Japonês): DIREITA → ESQUERDA, CIMA → BAIXO
+     Balões de fala seguem ordem japonesa (inversa)
+
+  📜 WEBTOON: CIMA → BAIXO (leitura vertical contínua)
+     Páginas longas em formato scroll
+
+ETAPA 6: VALIDAÇÃO CRUZADA FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Após definir a ordem, faça estas verificações:
+
+  ✓ A primeira página É REALMENTE a abertura do capítulo?
+  ✓ A última página TEM elementos de encerramento?
+  ✓ TODOS os diálogos seguem ordem lógica de conversa?
+  ✓ TODAS as ações têm progressão temporal correta?
+  ✓ Os cenários transitam de forma coerente?
+  ✓ A referência externa (se houver) CONFIRMA sua ordem?
+
+╔══════════════════════════════════════════════════════════════════╗
+║  ❌ ERROS FATAIS QUE VOCÊ DEVE EVITAR                           ║
+╚══════════════════════════════════════════════════════════════════╝
+
+❌ NUNCA ordene por nome de arquivo (são hashes aleatórios!)
+❌ NUNCA separe páginas da mesma conversa/cena
+❌ NUNCA coloque a resposta ANTES da pergunta
+❌ NUNCA inverta causa e efeito (ação → consequência)
+❌ NUNCA ignore os textos e diálogos das páginas
+❌ NUNCA assuma que a ordem atual está correta
+
+╔══════════════════════════════════════════════════════════════════╗
+║  ✅ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON)                      ║
+╚══════════════════════════════════════════════════════════════════╝
+
 {
-  "order": ["nome_exato_1.webp", "nome_exato_2.webp", ...],
+  "order": [
+    "hash1.webp",
+    "hash2.webp",
+    "hash3.webp"
+  ],
   "confidence": 0.95,
-  "reasoning": "Breve explicação da ordem: primeira página identificada por [razão], sequência de diálogo [descrição], última página com [indicador]"
+  "reasoning": "PRIMEIRA PÁGINA: [hash1.webp] identificada por título 'Capítulo 5' em coreano (제5화) e arte de abertura elaborada. SEQUÊNCIA: Diálogo inicia com personagem acordando (hash2), continua conversa com mulher (hash3-hash8), transição para sala do lorde (hash9-hash12), confronto final (hash13-hash15). ÚLTIMA PÁGINA: [hashFinal.webp] contém créditos de tradução e texto 'CONTINUA...'."
 }
 
-📋 NOMES EXATOS DAS IMAGENS: ${imageNames.join(", ")}
+📋 NOMES EXATOS DAS ${images.length} IMAGENS:
+${imageNames.map((name, i) => `   ${i + 1}. ${name}`).join('\n')}
 
-🧠 ANALISE CADA IMAGEM INDIVIDUALMENTE, COMPARE TODAS ENTRE SI, E CONSTRUA A SEQUÊNCIA NARRATIVA PERFEITA!`
+╔══════════════════════════════════════════════════════════════════╗
+║  🎬 AGORA ANALISE CADA IMAGEM DETALHADAMENTE                    ║
+╚══════════════════════════════════════════════════════════════════╝
+`
       },
-      ...images.map((img: { name: string; data: string }, index: number) => ({
-        type: "text",
-        text: `\n--- IMAGEM ${index + 1}: ${img.name} ---\nAnálise necessária: diálogo, ação, cenário, posição narrativa`
-      })),
+      ...imageAnalysisPrompts,
       ...images.map((img: { name: string; data: string }) => ({
         type: "image_url",
         image_url: {
           url: img.data
         }
-      }))
+      })),
+      {
+        type: "text",
+        text: `
+
+╔══════════════════════════════════════════════════════════════════╗
+║  🎯 INSTRUÇÕES FINAIS ANTES DE RESPONDER                        ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Agora que você viu TODAS as ${images.length} imagens:
+
+1. Identifique qual é a PRIMEIRA página (abertura)
+2. Identifique qual é a ÚLTIMA página (encerramento)
+3. Organize as páginas intermediárias seguindo:
+   - Continuidade de diálogo
+   - Progressão de ação
+   - Transições de cenário
+   - Lógica temporal
+
+4. Valide sua ordem comparando com a referência externa (se disponível)
+5. Calcule o confidence honestamente:
+   - 1.0 = Certeza absoluta, todas as transições perfeitas
+   - 0.9 = Muito confiante, pequenas dúvidas pontuais
+   - 0.7-0.8 = Confiante, mas com algumas incertezas
+   - <0.7 = Pouca confiança, precisa de revisão manual
+
+6. Escreva um reasoning DETALHADO explicando:
+   - Como identificou a primeira e última página
+   - Principais blocos narrativos e sua ordem
+   - Elementos-chave que confirmam a sequência
+
+RETORNE AGORA O JSON COM A ORDEM CORRETA!`
+      }
     ];
 
     console.log('Enviando para Lovable AI:', images.length, 'imagens');
