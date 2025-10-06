@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -34,6 +35,8 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [mangas, setMangas] = useState<MangaData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [mangaToDelete, setMangaToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch mangas from Supabase
@@ -94,16 +97,18 @@ export default function AdminDashboard() {
     totalFavorites: mangas.reduce((sum, manga) => sum + manga.favorites, 0)
   };
 
-  const handleDeleteManga = async (id: string) => {
+  const handleDeleteManga = async () => {
+    if (!mangaToDelete) return;
+
     try {
       const { error } = await supabase
         .from('mangas')
         .delete()
-        .eq('id', id);
+        .eq('id', mangaToDelete);
 
       if (error) throw error;
 
-      setMangas(prev => prev.filter(manga => manga.id !== id));
+      setMangas(prev => prev.filter(manga => manga.id !== mangaToDelete));
       
       toast({
         title: "Sucesso",
@@ -116,6 +121,9 @@ export default function AdminDashboard() {
         description: "Não foi possível remover a obra.",
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setMangaToDelete(null);
     }
   };
 
@@ -302,7 +310,10 @@ export default function AdminDashboard() {
                               size="sm" 
                               variant="outline" 
                               className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                              onClick={() => handleDeleteManga(manga.id)}
+                              onClick={() => {
+                                setMangaToDelete(manga.id);
+                                setDeleteDialogOpen(true);
+                              }}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -317,6 +328,23 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir esta obra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Todos os capítulos e dados relacionados a esta obra serão permanentemente removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteManga} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

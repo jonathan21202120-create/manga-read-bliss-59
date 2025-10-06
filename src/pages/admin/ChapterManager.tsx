@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useWasabiUpload } from "@/hooks/useWasabiUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,8 @@ export default function ChapterManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [isAiSorting, setIsAiSorting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
   const [newChapter, setNewChapter] = useState({
     number: 1,
     title: "",
@@ -303,10 +306,12 @@ export default function ChapterManager() {
     }
   };
 
-  const handleDeleteChapter = async (id: string) => {
+  const handleDeleteChapter = async () => {
+    if (!chapterToDelete) return;
+
     try {
       // Buscar URLs das páginas do capítulo antes de deletar
-      const chapter = chapters.find(c => c.id === id);
+      const chapter = chapters.find(c => c.id === chapterToDelete);
       
       if (chapter?.pageUrls && chapter.pageUrls.length > 0) {
         // Deletar cada imagem do R2
@@ -332,11 +337,11 @@ export default function ChapterManager() {
       const { error } = await supabase
         .from('chapters')
         .delete()
-        .eq('id', id);
+        .eq('id', chapterToDelete);
 
       if (error) throw error;
 
-      setChapters(prev => prev.filter(c => c.id !== id));
+      setChapters(prev => prev.filter(c => c.id !== chapterToDelete));
       toast({
         title: "Sucesso",
         description: "Capítulo e imagens removidos com sucesso!"
@@ -348,6 +353,9 @@ export default function ChapterManager() {
         description: "Erro ao remover capítulo.",
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setChapterToDelete(null);
     }
   };
 
@@ -846,7 +854,10 @@ export default function ChapterManager() {
                             size="sm" 
                             variant="outline" 
                             className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleDeleteChapter(chapter.id)}
+                            onClick={() => {
+                              setChapterToDelete(chapter.id);
+                              setDeleteDialogOpen(true);
+                            }}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -860,6 +871,23 @@ export default function ChapterManager() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir este capítulo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O capítulo e todas as suas páginas serão permanentemente removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteChapter} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
