@@ -392,8 +392,9 @@ export default function ChapterManager() {
 
     setIsAiSorting(true);
     toast({
-      title: "🔄 Organizando páginas pela IA…",
-      description: `Analisando ${selectedFiles.length} imagens e buscando referências de "${mangaInfo.title}"...`
+      title: "🔍 Iniciando análise inteligente...",
+      description: `Buscando referências online e analisando ${selectedFiles.length} imagens de "${mangaInfo.title}" Cap. ${newChapter.number}`,
+      duration: 5000
     });
 
     try {
@@ -413,6 +414,12 @@ export default function ChapterManager() {
         })
       );
 
+      console.log('📤 Enviando para IA:', { 
+        mangaTitle: mangaInfo.title, 
+        chapter: newChapter.number,
+        totalImages: imagesData.length 
+      });
+
       // Chamar edge function com contexto completo
       const { data, error } = await supabase.functions.invoke('sort-manga-pages', {
         body: { 
@@ -422,9 +429,20 @@ export default function ChapterManager() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro da edge function:', error);
+        throw error;
+      }
+
+      console.log('📥 Resposta da IA:', data);
 
       if (data?.order && Array.isArray(data.order)) {
+        const confidence = data.confidence || 0;
+        const reasoning = data.reasoning || '';
+        
+        console.log('🎯 Confiança:', confidence);
+        console.log('💭 Raciocínio:', reasoning);
+
         // Reorganizar arquivos conforme a ordem retornada pela IA
         const orderedFiles: File[] = [];
         const unmatchedFiles: File[] = [];
@@ -435,7 +453,7 @@ export default function ChapterManager() {
           if (file) {
             orderedFiles.push(file);
           } else {
-            console.warn(`Arquivo não encontrado: ${name}`);
+            console.warn(`⚠️ Arquivo não encontrado: ${name}`);
           }
         }
         
@@ -443,36 +461,61 @@ export default function ChapterManager() {
         for (const file of selectedFiles) {
           if (!orderedFiles.includes(file)) {
             unmatchedFiles.push(file);
-            console.warn(`Arquivo não ordenado pela IA: ${file.name}`);
+            console.warn(`⚠️ Arquivo não ordenado pela IA: ${file.name}`);
           }
         }
         
-        // Se conseguimos ordenar pelo menos metade dos arquivos, usar a ordem da IA
+        // Verificar se a IA conseguiu ordenar a maioria
         if (orderedFiles.length >= selectedFiles.length / 2) {
-          // Adicionar arquivos não ordenados no final
           setSelectedFiles([...orderedFiles, ...unmatchedFiles]);
           
-          const message = unmatchedFiles.length > 0 
-            ? `${orderedFiles.length} páginas organizadas. ${unmatchedFiles.length} páginas mantidas no final.`
-            : "Todas as páginas foram organizadas automaticamente!";
+          let message = `${orderedFiles.length}/${selectedFiles.length} páginas organizadas`;
+          if (unmatchedFiles.length > 0) {
+            message += `. ${unmatchedFiles.length} páginas mantidas no final`;
+          }
           
+          // Adicionar informação de confiança
+          const confidencePercent = Math.round(confidence * 100);
+          if (confidencePercent > 0) {
+            message += ` (confiança: ${confidencePercent}%)`;
+          }
+          
+          const title = confidence >= 0.8 
+            ? "✅ Páginas organizadas com alta confiança!" 
+            : confidence >= 0.6
+            ? "⚠️ Páginas organizadas (confiança média)"
+            : "⚠️ Ordenação com baixa confiança";
+
           toast({
-            title: "✅ Páginas reorganizadas!",
-            description: message
+            title,
+            description: message,
+            duration: 6000
           });
+
+          // Se confiança baixa, mostrar raciocínio
+          if (confidence < 0.7 && reasoning) {
+            console.log('💭 Raciocínio detalhado:', reasoning);
+            setTimeout(() => {
+              toast({
+                title: "💭 Análise da IA",
+                description: reasoning.substring(0, 150) + (reasoning.length > 150 ? '...' : ''),
+                duration: 8000
+              });
+            }, 1000);
+          }
         } else {
-          // Se a IA não conseguiu ordenar a maioria, manter ordem original
-          throw new Error(`IA conseguiu ordenar apenas ${orderedFiles.length} de ${selectedFiles.length} páginas`);
+          throw new Error(`IA conseguiu ordenar apenas ${orderedFiles.length} de ${selectedFiles.length} páginas. Confiança: ${Math.round(confidence * 100)}%`);
         }
       } else {
         throw new Error('Resposta inválida da IA');
       }
     } catch (error: any) {
-      console.error('Erro ao organizar com IA:', error);
+      console.error('❌ Erro ao organizar com IA:', error);
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível organizar as páginas com a IA.",
-        variant: "destructive"
+        title: "❌ Erro na organização",
+        description: error.message || "Não foi possível organizar as páginas. Tente ordenar manualmente ou com menos imagens.",
+        variant: "destructive",
+        duration: 8000
       });
     } finally {
       setIsAiSorting(false);

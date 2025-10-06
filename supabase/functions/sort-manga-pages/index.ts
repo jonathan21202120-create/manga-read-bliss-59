@@ -30,127 +30,135 @@ serve(async (req) => {
     // Preparar conteúdo para o modelo de visão
     const imageNames = images.map((img: { name: string; data: string }) => img.name);
     
+    // Primeiro: tentar buscar ordem correta online
+    console.log('🔍 Buscando referência online para:', mangaTitle, 'Capítulo', chapterNumber);
+    
+    let externalReference = '';
+    try {
+      const searchResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: `Busque sites de scan/leitura online para a obra "${mangaTitle}" Capítulo ${chapterNumber}.
+              
+Retorne APENAS URLs diretas de sites de scan como:
+- brmangas.net
+- mangayabu.top  
+- tsukimangas.com
+- mangalivre.net
+- unionmangas.top
+
+Formato de resposta:
+{
+  "urls": ["url1", "url2"],
+  "readingOrder": "left-to-right ou right-to-left",
+  "notes": "observações sobre a ordem de leitura"
+}`
+            }
+          ],
+          temperature: 0.3
+        })
+      });
+
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        const searchResult = searchData.choices?.[0]?.message?.content;
+        console.log('🌐 Referência externa encontrada:', searchResult);
+        externalReference = searchResult || '';
+      }
+    } catch (e) {
+      console.warn('⚠️ Não foi possível buscar referência externa:', e);
+    }
+
     const content = [
       {
         type: "text",
-        text: `TAREFA CRÍTICA: ORGANIZAR PÁGINAS DE MANHWA/MANGA POR ANÁLISE VISUAL
+        text: `TAREFA CRÍTICA: ORGANIZAR PÁGINAS DE MANHWA/MANGA POR ANÁLISE VISUAL DETALHADA
 
 📖 Obra: ${mangaTitle} - Capítulo ${chapterNumber}
 🔢 Total de páginas: ${images.length}
 
-⚠️ REGRA #1: IGNORE COMPLETAMENTE OS NOMES DOS ARQUIVOS! 
-Analise SOMENTE o conteúdo visual de cada imagem.
+${externalReference ? `🌐 REFERÊNCIA EXTERNA ENCONTRADA:\n${externalReference}\n\n` : ''}
 
-🎯 SEU OBJETIVO:
-Organize as páginas na ordem CORRETA de leitura, seguindo a narrativa visual e textual.
+⚠️ INSTRUÇÕES ABSOLUTAS:
+1. IGNORE COMPLETAMENTE OS NOMES DOS ARQUIVOS!
+2. Analise PROFUNDAMENTE o conteúdo visual de CADA imagem
+3. Use a referência externa acima (se disponível) para confirmar a ordem
+4. Se não tiver 100% de certeza, indique na resposta
 
-📋 COMO IDENTIFICAR A ORDEM:
+🎯 METODOLOGIA DE ANÁLISE (EXECUTE TODOS OS PASSOS):
 
-1️⃣ PRIMEIRA PÁGINA (Capa/Abertura):
-   ✓ Título grande e centralizado do capítulo
-   ✓ Arte mais elaborada ou diferenciada
-   ✓ Pode ter logo da obra
-   ✓ Geralmente sem diálogo ou com texto introdutório
-   ✓ Cores mais vibrantes ou destaque visual
+PASSO 1 - IDENTIFICAR PRIMEIRA PÁGINA:
+✓ Procure por título do capítulo em fonte grande/destacada
+✓ Arte de abertura mais elaborada ou colorida
+✓ Pode ter logo da obra ou número do capítulo
+✓ Geralmente tem menos ou nenhum diálogo
 
-2️⃣ PÁGINAS INTERNAS (Sequência narrativa):
-   
-   CONTINUIDADE DE DIÁLOGO:
-   • Leia os balões de fala em SEQUÊNCIA
-   • Uma conversa deve fluir naturalmente entre páginas
-   • Se alguém faz uma pergunta, a resposta vem na página seguinte
-   • Diálogos interrompidos continuam na próxima página
-   
-   CONTINUIDADE DE AÇÃO:
-   • Personagem começando um movimento → completando o movimento
-   • Personagem entrando em cena → interagindo → saindo
-   • Sequência de combate: golpe → impacto → reação
-   • Mudanças de expressão: neutro → surpreso → reagindo
-   
-   CONTINUIDADE DE CENÁRIO:
-   • Mesma localização deve permanecer agrupada
-   • Transições visuais: interior → exterior, dia → noite
-   • Mudanças de cena devem fazer sentido cronológico
-   
-   LÓGICA TEMPORAL:
-   • Causa vem antes do efeito
-   • Preparação antes da ação
-   • Ação antes da consequência
+PASSO 2 - IDENTIFICAR ÚLTIMA PÁGINA:
+✓ Palavras como "FIM", "CONTINUA", "TO BE CONTINUED", "Próximo Capítulo"
+✓ Créditos do scan/tradução
+✓ Preview ou arte de encerramento
+✓ Cena de conclusão narrativa
 
-3️⃣ ÚLTIMA PÁGINA (Fechamento):
-   ✓ Pode ter "FIM", "CONTINUA...", "TO BE CONTINUED"
-   ✓ Créditos do autor/artista
-   ✓ Preview do próximo capítulo
-   ✓ Cena de conclusão/gancho narrativo
-   ✓ Arte de encerramento ou fade out
+PASSO 3 - ANALISAR CONTINUIDADE DE DIÁLOGO:
+Para CADA página, leia TODOS os balões de fala e verifique:
+• Uma pergunta em uma página → resposta deve estar na próxima
+• Conversa interrompida → continuação na próxima
+• Personagem falando → reação de outro personagem
+• Ordem natural de conversação
 
-🔍 METODOLOGIA DE ANÁLISE:
+PASSO 4 - ANALISAR CONTINUIDADE DE AÇÃO:
+• Movimento iniciado → movimento completado
+• Personagem olhando para algo → mostra o que está olhando
+• Ataque/golpe → impacto → reação
+• Expressão neutra → surpresa → resposta emocional
+• Causa → efeito (temporal)
 
-PASSO 1: Identifique a primeira e última página
-PASSO 2: Encontre sequências de diálogo conectadas
-PASSO 3: Agrupe páginas por cena/localização
-PASSO 4: Ordene as cenas cronologicamente
-PASSO 5: Dentro de cada cena, ordene por fluxo de ação
-PASSO 6: Verifique se há continuidade visual entre todas as transições
+PASSO 5 - ANALISAR CONTINUIDADE DE CENÁRIO:
+• Mesma localização/ambiente deve ficar agrupado
+• Interior → exterior (transição lógica)
+• Dia → noite (progressão temporal)
+• Mudanças de cena devem ter sentido cronológico
 
-📐 DIREÇÃO DE LEITURA:
+PASSO 6 - DIREÇÃO DE LEITURA:
 • Manhwa (Coreano): Esquerda → Direita, Cima → Baixo
 • Manga (Japonês): Direita → Esquerda, Cima → Baixo
-• Webtoon vertical: Cima → Baixo
+• Webtoon: Cima → Baixo (vertical contínuo)
 
-❌ NÃO FAÇA:
-• Não se baseie em nomes de arquivo
-• Não assuma ordem alfabética
-• Não ignore continuidade narrativa
-• Não separe páginas de uma mesma cena
+PASSO 7 - VERIFICAÇÃO CRUZADA:
+• Compare sua ordem com a referência externa (se disponível)
+• Verifique se TODAS as transições fazem sentido
+• Releia os diálogos na ordem proposta
+• Confirme a progressão narrativa
 
-✅ SAÍDA OBRIGATÓRIA:
-Retorne APENAS um JSON válido:
-{"order": ["nome_exato_1.webp", "nome_exato_2.webp", ...]}
+❌ ERROS QUE VOCÊ NUNCA DEVE COMETER:
+• Usar ordem alfabética ou numérica dos nomes de arquivo
+• Separar páginas de uma mesma cena/conversa
+• Inverter causa e efeito
+• Ignorar continuidade de diálogo
+• Colocar a resposta antes da pergunta
 
-Use os nomes EXATOS: ${imageNames.join(", ")}
+✅ FORMATO DE SAÍDA OBRIGATÓRIO:
+{
+  "order": ["nome_exato_1.webp", "nome_exato_2.webp", ...],
+  "confidence": 0.95,
+  "reasoning": "Breve explicação da ordem: primeira página identificada por [razão], sequência de diálogo [descrição], última página com [indicador]"
+}
 
-🧠 ANALISE CADA IMAGEM CUIDADOSAMENTE E CONSTRUA A NARRATIVA VISUAL COMPLETA!
+📋 NOMES EXATOS DAS IMAGENS: ${imageNames.join(", ")}
 
-COMO IDENTIFICAR A ORDEM CORRETA:
-
-1. CAPA (primeira página):
-   - Título grande e destacado
-   - Arte diferenciada, mais elaborada
-   - Logo da obra ou do capítulo
-   - Geralmente tem cores mais vibrantes
-   - Pode ter o nome do autor
-
-2. PÁGINAS INTERNAS (ordem sequencial):
-   - Siga a CONTINUIDADE DA NARRATIVA VISUAL
-   - Balões de fala devem formar uma conversa coerente
-   - Expressões dos personagens devem progredir naturalmente
-   - Ações físicas devem ter sequência lógica (ex: pessoa se levantando → andando → chegando)
-   - Mudanças de cenário devem fazer sentido
-   - Se houver números de página, use-os apenas como referência secundária
-
-3. PÁGINA FINAL (última página):
-   - Pode ter "FIM", "TO BE CONTINUED", "CONTINUA..."
-   - Créditos do autor/artista
-   - Preview do próximo capítulo
-   - Cena de fechamento/conclusão
-
-INSTRUÇÕES DE ANÁLISE:
-- Observe cada imagem CUIDADOSAMENTE
-- Identifique personagens e suas posições
-- Siga o fluxo da conversa e das ações
-- A leitura geralmente é da direita para esquerda (manhwa) ou esquerda para direita (mangá)
-- Procure continuidade visual entre as páginas
-
-FORMATO DE RESPOSTA (OBRIGATÓRIO):
-Retorne APENAS um JSON válido com os nomes EXATOS dos arquivos:
-{"order": ["nome_exato_1.jpg", "nome_exato_2.png", ...]}
-
-Use os nomes EXATAMENTE como foram fornecidos acima. NÃO invente novos nomes!`
+🧠 ANALISE CADA IMAGEM INDIVIDUALMENTE, COMPARE TODAS ENTRE SI, E CONSTRUA A SEQUÊNCIA NARRATIVA PERFEITA!`
       },
       ...images.map((img: { name: string; data: string }, index: number) => ({
         type: "text",
-        text: `\n--- IMAGEM ${index + 1}: ${img.name} ---`
+        text: `\n--- IMAGEM ${index + 1}: ${img.name} ---\nAnálise necessária: diálogo, ação, cenário, posição narrativa`
       })),
       ...images.map((img: { name: string; data: string }) => ({
         type: "image_url",
@@ -201,7 +209,7 @@ Use os nomes EXATAMENTE como foram fornecidos acima. NÃO invente novos nomes!`
     const data = await response.json();
     const aiResponse = data.choices?.[0]?.message?.content;
     
-    console.log('Resposta da IA:', aiResponse);
+    console.log('📊 Resposta da IA:', aiResponse);
 
     // Extrair JSON da resposta
     let parsedOrder;
@@ -214,26 +222,60 @@ Use os nomes EXATAMENTE como foram fornecidos acima. NÃO invente novos nomes!`
         parsedOrder = JSON.parse(aiResponse);
       }
       
-      // Log para debug
-      console.log('Nomes enviados:', imageNames);
-      console.log('Nomes retornados pela IA:', parsedOrder.order);
+      // Log detalhado para debug
+      console.log('📝 Nomes enviados:', imageNames);
+      console.log('📝 Nomes retornados pela IA:', parsedOrder.order);
+      console.log('🎯 Confiança da IA:', parsedOrder.confidence || 'não informada');
+      console.log('💭 Raciocínio:', parsedOrder.reasoning || 'não informado');
       
       // Verificar se todos os nomes retornados existem nos enviados
       const invalidNames = parsedOrder.order?.filter((name: string) => !imageNames.includes(name)) || [];
       if (invalidNames.length > 0) {
-        console.warn('AVISO: IA retornou nomes que não existem:', invalidNames);
+        console.error('❌ ERRO: IA retornou nomes inválidos:', invalidNames);
+        return new Response(
+          JSON.stringify({ 
+            error: 'IA retornou nomes de arquivo inválidos',
+            invalidNames,
+            validNames: imageNames 
+          }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verificar se todos os nomes originais estão na resposta
+      const missingNames = imageNames.filter((name: string) => !parsedOrder.order?.includes(name)) || [];
+      if (missingNames.length > 0) {
+        console.error('❌ ERRO: IA não incluiu todas as imagens:', missingNames);
+        return new Response(
+          JSON.stringify({ 
+            error: 'IA não incluiu todas as imagens na ordenação',
+            missingNames 
+          }), 
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verificar confiança
+      const confidence = parsedOrder.confidence || 0;
+      if (confidence < 0.7) {
+        console.warn('⚠️ AVISO: Confiança baixa na ordenação:', confidence);
       }
       
     } catch (e) {
-      console.error('Erro ao parsear resposta da IA:', e);
+      console.error('❌ Erro ao parsear resposta da IA:', e);
       return new Response(
         JSON.stringify({ error: 'Erro ao processar resposta da IA', rawResponse: aiResponse }), 
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('✅ Ordenação concluída com sucesso');
     return new Response(
-      JSON.stringify({ order: parsedOrder.order || images.map((img: any) => img.name) }),
+      JSON.stringify({ 
+        order: parsedOrder.order,
+        confidence: parsedOrder.confidence,
+        reasoning: parsedOrder.reasoning
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
