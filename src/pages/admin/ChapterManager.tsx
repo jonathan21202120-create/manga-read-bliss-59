@@ -683,20 +683,22 @@ export default function ChapterManager() {
                       <p className="text-sm text-manga-text-muted mb-4">
                         As imagens serão ordenadas automaticamente por nome/número
                       </p>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          id="file-upload"
-                        />
-                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-manga-primary text-primary-foreground hover:opacity-90 transition-opacity">
-                          <FileImage className="h-4 w-4" />
-                          Escolher arquivos
-                        </span>
-                      </label>
+                      <Button
+                        type="button"
+                        className="bg-manga-primary hover:opacity-90"
+                        onClick={() => document.getElementById('file-upload-input')?.click()}
+                      >
+                        <FileImage className="h-4 w-4 mr-2" />
+                        Escolher arquivos
+                      </Button>
+                      <input
+                        id="file-upload-input"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                     </div>
                     {selectedFiles.length > 0 && (
                       <div className="mt-6 pt-6 border-t border-border/30">
