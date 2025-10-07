@@ -400,8 +400,8 @@ export default function ChapterManager() {
 
     setIsAiSorting(true);
     toast({
-      title: "🔍 Iniciando análise inteligente...",
-      description: `Buscando referências online e analisando ${selectedFiles.length} imagens de "${mangaInfo.title}" Cap. ${newChapter.number}`,
+      title: "🔍 Sistema DUAL-AI ativado",
+      description: `Analisando ${selectedFiles.length} imagens de "${mangaInfo.title}" Cap. ${newChapter.number} em duas etapas...`,
       duration: 5000
     });
 
@@ -422,13 +422,13 @@ export default function ChapterManager() {
         })
       );
 
-      console.log('📤 Enviando para IA:', { 
+      console.log('📤 Enviando para DUAL-AI System:', { 
         mangaTitle: mangaInfo.title, 
         chapter: newChapter.number,
         totalImages: imagesData.length 
       });
 
-      // Chamar edge function com contexto completo
+      // Chamar edge function com sistema dual-AI
       const { data, error } = await supabase.functions.invoke('sort-manga-pages', {
         body: { 
           images: imagesData,
@@ -442,14 +442,20 @@ export default function ChapterManager() {
         throw error;
       }
 
-      console.log('📥 Resposta da IA:', data);
+      console.log('📥 Resposta do DUAL-AI:', data);
 
       if (data?.order && Array.isArray(data.order)) {
         const confidence = data.confidence || 0;
+        const status = data.status || '⚠️ Status desconhecido';
         const reasoning = data.reasoning || '';
+        const warnings = data.warnings || [];
         
+        console.log('📊 Status:', status);
         console.log('🎯 Confiança:', confidence);
         console.log('💭 Raciocínio:', reasoning);
+        if (warnings.length > 0) {
+          console.log('⚠️ Avisos:', warnings);
+        }
 
         // Reorganizar arquivos conforme a ordem retornada pela IA
         const orderedFiles: File[] = [];
@@ -477,42 +483,58 @@ export default function ChapterManager() {
         if (orderedFiles.length >= selectedFiles.length / 2) {
           setSelectedFiles([...orderedFiles, ...unmatchedFiles]);
           
-          let message = `${orderedFiles.length}/${selectedFiles.length} páginas organizadas`;
-          if (unmatchedFiles.length > 0) {
-            message += `. ${unmatchedFiles.length} páginas mantidas no final`;
-          }
-          
-          // Adicionar informação de confiança
           const confidencePercent = Math.round(confidence * 100);
-          if (confidencePercent > 0) {
-            message += ` (confiança: ${confidencePercent}%)`;
+          
+          // Usar o status retornado pela IA diretamente
+          let title = status;
+          let message = `${orderedFiles.length}/${selectedFiles.length} páginas organizadas (${confidencePercent}% confiança)`;
+          
+          if (unmatchedFiles.length > 0) {
+            message += `\n${unmatchedFiles.length} páginas mantidas no final`;
           }
           
-          const title = confidence >= 0.8 
-            ? "✅ Páginas organizadas com alta confiança!" 
-            : confidence >= 0.6
-            ? "⚠️ Páginas organizadas (confiança média)"
-            : "⚠️ Ordenação com baixa confiança";
+          if (warnings.length > 0) {
+            message += `\n⚠️ ${warnings[0]}`;
+          }
 
-          toast({
-            title,
+          // Determinar tipo de toast baseado no status
+          const toastConfig: any = {
             description: message,
-            duration: 6000
-          });
+            duration: status.includes('✅') ? 6000 : status.includes('⚠️') ? 8000 : 10000
+          };
+          
+          if (status.includes('✅')) {
+            toast({
+              title,
+              ...toastConfig
+            });
+          } else if (status.includes('⚠️')) {
+            toast({
+              title,
+              ...toastConfig,
+              variant: "default"
+            });
+          } else {
+            toast({
+              title,
+              ...toastConfig,
+              variant: "destructive"
+            });
+          }
 
-          // Se confiança baixa, mostrar raciocínio
-          if (confidence < 0.7 && reasoning) {
+          // Se confiança baixa ou avisos, mostrar raciocínio
+          if ((confidence < 0.85 || warnings.length > 0) && reasoning) {
             console.log('💭 Raciocínio detalhado:', reasoning);
             setTimeout(() => {
               toast({
-                title: "💭 Análise da IA",
-                description: reasoning.substring(0, 150) + (reasoning.length > 150 ? '...' : ''),
-                duration: 8000
+                title: "💭 Análise Detalhada do DUAL-AI",
+                description: reasoning.substring(0, 200) + (reasoning.length > 200 ? '...' : ''),
+                duration: 10000
               });
-            }, 1000);
+            }, 1500);
           }
         } else {
-          throw new Error(`IA conseguiu ordenar apenas ${orderedFiles.length} de ${selectedFiles.length} páginas. Confiança: ${Math.round(confidence * 100)}%`);
+          throw new Error(`IA conseguiu ordenar apenas ${orderedFiles.length} de ${selectedFiles.length} páginas. Status: ${status}`);
         }
       } else {
         throw new Error('Resposta inválida da IA');
