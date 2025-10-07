@@ -45,7 +45,15 @@ serve(async (req) => {
     console.log('─'.repeat(70));
     console.log('Analisando conteúdo visual individual de cada página...\n');
 
-    const visualAnalysisPrompt = `Você é uma IA ESPECIALIZADA em análise visual de manga/manhwa.
+    const visualAnalysisPrompt = `Você é uma IA ESPECIALIZADA em análise visual de manga/manhwa com profundo conhecimento de narrativa sequencial.
+
+**CONHECIMENTO DE REFERÊNCIA - ESTRUTURA DE MANHWA/MANGA**:
+- Manhwa (coreano) geralmente usa leitura VERTICAL (rolagem)
+- Manga (japonês) usa leitura HORIZONTAL (direita → esquerda)
+- Painéis grandes = momentos importantes/impactantes
+- Sequências de ação: preparação → tensão → impacto → reação
+- Flashbacks: geralmente com filtros/bordas diferentes
+- Páginas duplas: momentos climáticos ou panorâmicos
 
 **SUA TAREFA**: Analise cada uma das ${images.length} imagens fornecidas individualmente e extraia informações visuais DETALHADAS.
 
@@ -155,7 +163,35 @@ ${imageNames.map((name, i) => `${i + 1}. ${name}`).join('\n')}`;
     console.log('─'.repeat(70));
     console.log('Determinando sequência narrativa correta...\n');
 
-    const narrativePrompt = `Você é uma IA ESPECIALIZADA em sequenciamento narrativo de manga/manhwa.
+    const narrativePrompt = `Você é uma IA ESPECIALIZADA em sequenciamento narrativo de manga/manhwa com profundo conhecimento de storytelling visual asiático.
+
+**CONHECIMENTO DE REFERÊNCIA OBRIGATÓRIO**:
+
+📚 **ESTRUTURA NARRATIVA DE MANHWA/MANGA**:
+1. **Abertura** (1-2 páginas): Título, arte conceitual, recap anterior
+2. **Gancho** (próximas 2-3 páginas): Estabelece tensão/curiosidade
+3. **Desenvolvimento**: Alternância entre diálogo, ação e momentos calmos
+4. **Clímax**: Painéis maiores, mais dinâmicos, momento de maior impacto
+5. **Resolução/Gancho final**: Prepara próximo capítulo, créditos
+
+🎬 **PADRÕES DE SEQUÊNCIA EM MANHWA**:
+- **Diálogo padrão**: Pergunta → Reação facial → Resposta → Consequência
+- **Cena de ação**: Preparação → Antecipação (olhares/postura) → Movimento → Impacto → Reação dos personagens
+- **Revelação dramática**: Build-up (2-3 painéis) → Painel de revelação (grande) → Reação dos personagens
+- **Transição de cena**: Página fecha em close-up/emoção → Nova página abre com establishing shot do novo local
+
+🔍 **SINAIS VISUAIS CRÍTICOS**:
+- Olhares/direção facial dos personagens indicam fluxo de conversa
+- Linhas de movimento sempre vão do começo → fim da ação
+- Mudança de iluminação = mudança de tempo/local
+- Balões de fala: posição indica ordem (topo antes de baixo, direita antes esquerda em manga)
+
+⚠️ **ERROS COMUNS A EVITAR**:
+❌ Colocar impacto antes da preparação
+❌ Colocar reação antes do evento que a causa
+❌ Separar páginas de uma mesma conversa fluida
+❌ Inverter causa e efeito temporal
+❌ Ignorar continuidade de objetos/posições na cena
 
 **INFORMAÇÕES DA OBRA**:
 📖 Título: "${mangaTitle}"
@@ -180,30 +216,39 @@ Use os dados de análise visual + as imagens fornecidas para determinar a ordem 
    - pageType: "closing" é forte indicador
    - Pode ter preview do próximo capítulo
 
-3️⃣ **ORGANIZAR PÁGINAS INTERMEDIÁRIAS**:
+3️⃣ **ORGANIZAR PÁGINAS INTERMEDIÁRIAS** (aplicando conhecimento de manhwa/manga):
    
    A. **CONTINUIDADE DE DIÁLOGO** (prioridade máxima):
       - Perguntas DEVEM vir antes de respostas
-      - Diálogos incompletos devem continuar na próxima página
-      - Conversas entre personagens devem fluir naturalmente
+      - Observe direção dos olhares: quem fala olha para quem ouve
+      - Emoção no rosto PRECEDE o que será dito
       
-      Exemplo correto:
-        Página A: "O que você está fazendo aqui?"
-        Página B: "Vim te salvar!"
+      ✅ Exemplo correto (manhwa):
+        Página A: [personagem surpreso] + "O que você está fazendo aqui?"
+        Página B: [personagem determinado] + "Vim te salvar!"
+        Página C: [reação emocional ao que foi dito]
    
-   B. **CONTINUIDADE DE AÇÃO**:
-      - Ações devem progredir temporalmente: preparação → execução → resultado
-      - Causa deve vir antes do efeito
+   B. **CONTINUIDADE DE AÇÃO** (seguindo padrões de manhwa):
+      - SEMPRE: preparação → antecipação → execução → impacto → reação
+      - Linhas de movimento indicam direção temporal
+      - Painéis maiores = momentos de maior impacto (vêm no AUGE da ação)
       
-      Exemplo correto:
-        Página A: [personagem prepara soco]
-        Página B: [soco em movimento]
-        Página C: [impacto no alvo]
+      ✅ Exemplo correto (cena de luta típica):
+        Página A: [vilão ameaçador, herói em pose defensiva]
+        Página B: [vilão em movimento, close nos olhos do herói - antecipação]
+        Página C: [PAINEL GRANDE - impacto do golpe, efeitos visuais]
+        Página D: [vilão no chão, herói ofegante - consequência]
    
-   C. **CONTINUIDADE DE CENÁRIO**:
+   C. **CONTINUIDADE DE CENÁRIO E ATMOSFERA**:
+      - Establishing shot (visão geral) ANTES dos close-ups
       - Mantenha cenas no mesmo local juntas
-      - Transições devem ser lógicas: quarto → corredor → sala
-      - Progressão temporal: dia → tarde → noite
+      - Mudança de iluminação = nova cena/tempo
+      - Transições: página fecha em EMOÇÃO → nova página abre em NOVO LOCAL
+      
+      ✅ Exemplo correto (transição de cena):
+        Página A: [close no rosto triste do personagem]
+        Página B: [establishing shot - exterior de uma casa à noite]
+        Página C: [interior da casa, novo personagem]
 
 4️⃣ **VALIDAÇÃO CRUZADA**:
    - Verifique se todos os diálogos fazem sentido na ordem escolhida
@@ -231,14 +276,18 @@ Use os dados de análise visual + as imagens fornecidas para determinar a ordem 
   "warnings": ["qualquer ambiguidade ou incerteza encontrada"]
 }
 
-**REGRAS ABSOLUTAS**:
+**REGRAS ABSOLUTAS** (baseadas em storytelling de manhwa/manga):
 🚫 NUNCA ordene por nome de arquivo (são hashes aleatórios!)
 🚫 NUNCA coloque resposta antes de pergunta
-🚫 NUNCA inverta causa e efeito
-🚫 NUNCA separe páginas da mesma conversa
-✅ SEMPRE baseie na análise visual + conteúdo das imagens
-✅ SEMPRE valide que diálogos fazem sentido na ordem
-✅ SEMPRE explique seu raciocínio detalhadamente
+🚫 NUNCA inverta causa e efeito (preparação SEMPRE antes de impacto)
+🚫 NUNCA separe páginas da mesma conversa/cena
+🚫 NUNCA coloque reação ANTES do evento que a causou
+🚫 NUNCA ignore linhas de movimento e direção de olhares
+✅ SEMPRE siga a estrutura: estabelecimento → desenvolvimento → clímax → resolução
+✅ SEMPRE valide que diálogos fazem sentido na ordem (pergunta → resposta)
+✅ SEMPRE verifique continuidade visual (objetos, posições, iluminação)
+✅ SEMPRE considere o impacto emocional progressivo da narrativa
+✅ SEMPRE explique seu raciocínio citando elementos visuais específicos
 
 ARQUIVOS DISPONÍVEIS (ordem atual, provavelmente INCORRETA):
 ${imageNames.map((name, i) => `${i + 1}. ${name}`).join('\n')}
