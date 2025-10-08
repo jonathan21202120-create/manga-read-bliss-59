@@ -6,8 +6,5 @@ verify_jwt = true
 [functions.delete-from-r2]
 verify_jwt = true
 
-[functions.sort-manga-pages]
-verify_jwt = false
-
 [functions.rate-limiter]
 verify_jwt = false
