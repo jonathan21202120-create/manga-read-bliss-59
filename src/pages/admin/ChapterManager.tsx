@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useWasabiUpload } from "@/hooks/useWasabiUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,9 @@ export default function ChapterManager() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAiSorting, setIsAiSorting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
   const [newChapter, setNewChapter] = useState({
     number: 1,
     title: "",
@@ -302,10 +306,12 @@ export default function ChapterManager() {
     }
   };
 
-  const handleDeleteChapter = async (id: string) => {
+  const handleDeleteChapter = async () => {
+    if (!chapterToDelete) return;
+
     try {
       // Buscar URLs das páginas do capítulo antes de deletar
-      const chapter = chapters.find(c => c.id === id);
+      const chapter = chapters.find(c => c.id === chapterToDelete);
       
       if (chapter?.pageUrls && chapter.pageUrls.length > 0) {
         // Deletar cada imagem do R2
@@ -331,11 +337,11 @@ export default function ChapterManager() {
       const { error } = await supabase
         .from('chapters')
         .delete()
-        .eq('id', id);
+        .eq('id', chapterToDelete);
 
       if (error) throw error;
 
-      setChapters(prev => prev.filter(c => c.id !== id));
+      setChapters(prev => prev.filter(c => c.id !== chapterToDelete));
       toast({
         title: "Sucesso",
         description: "Capítulo e imagens removidos com sucesso!"
@@ -347,6 +353,9 @@ export default function ChapterManager() {
         description: "Erro ao remover capítulo.",
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setChapterToDelete(null);
     }
   };
 
@@ -368,6 +377,179 @@ export default function ChapterManager() {
       title: "Status atualizado",
       description: `Capítulo marcado como ${newStatus === "published" ? "publicado" : "rascunho"}.`
     });
+  };
+
+  const handleAiSort = async () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Carregue pelo menos uma imagem antes de usar a IA.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!mangaInfo) {
+      toast({
+        title: "Erro",
+        description: "Informações do manga não carregadas",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAiSorting(true);
+    toast({
+      title: "🔍 Sistema DUAL-AI ativado",
+      description: `Analisando ${selectedFiles.length} imagens de "${mangaInfo.title}" Cap. ${newChapter.number} em duas etapas...`,
+      duration: 5000
+    });
+
+    try {
+      // Converter imagens para base64
+      const imagesData = await Promise.all(
+        selectedFiles.map(async (file) => {
+          return new Promise<{ name: string; data: string }>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve({
+                name: file.name,
+                data: reader.result as string
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      console.log('📤 Enviando para DUAL-AI System:', { 
+        mangaTitle: mangaInfo.title, 
+        chapter: newChapter.number,
+        totalImages: imagesData.length 
+      });
+
+      // Chamar edge function com sistema dual-AI
+      const { data, error } = await supabase.functions.invoke('sort-manga-pages', {
+        body: { 
+          images: imagesData,
+          mangaTitle: mangaInfo.title,
+          chapterNumber: newChapter.number
+        }
+      });
+
+      if (error) {
+        console.error('❌ Erro da edge function:', error);
+        throw error;
+      }
+
+      console.log('📥 Resposta do DUAL-AI:', data);
+
+      if (data?.order && Array.isArray(data.order)) {
+        const confidence = data.confidence || 0;
+        const status = data.status || '⚠️ Status desconhecido';
+        const reasoning = data.reasoning || '';
+        const warnings = data.warnings || [];
+        
+        console.log('📊 Status:', status);
+        console.log('🎯 Confiança:', confidence);
+        console.log('💭 Raciocínio:', reasoning);
+        if (warnings.length > 0) {
+          console.log('⚠️ Avisos:', warnings);
+        }
+
+        // Reorganizar arquivos conforme a ordem retornada pela IA
+        const orderedFiles: File[] = [];
+        const unmatchedFiles: File[] = [];
+        
+        // Mapear os arquivos na ordem sugerida pela IA
+        for (const name of data.order) {
+          const file = selectedFiles.find(f => f.name === name);
+          if (file) {
+            orderedFiles.push(file);
+          } else {
+            console.warn(`⚠️ Arquivo não encontrado: ${name}`);
+          }
+        }
+        
+        // Adicionar arquivos que não foram mencionados pela IA (para não perder nada)
+        for (const file of selectedFiles) {
+          if (!orderedFiles.includes(file)) {
+            unmatchedFiles.push(file);
+            console.warn(`⚠️ Arquivo não ordenado pela IA: ${file.name}`);
+          }
+        }
+        
+        // Verificar se a IA conseguiu ordenar a maioria
+        if (orderedFiles.length >= selectedFiles.length / 2) {
+          setSelectedFiles([...orderedFiles, ...unmatchedFiles]);
+          
+          const confidencePercent = Math.round(confidence * 100);
+          
+          // Usar o status retornado pela IA diretamente
+          let title = status;
+          let message = `${orderedFiles.length}/${selectedFiles.length} páginas organizadas (${confidencePercent}% confiança)`;
+          
+          if (unmatchedFiles.length > 0) {
+            message += `\n${unmatchedFiles.length} páginas mantidas no final`;
+          }
+          
+          if (warnings.length > 0) {
+            message += `\n⚠️ ${warnings[0]}`;
+          }
+
+          // Determinar tipo de toast baseado no status
+          const toastConfig: any = {
+            description: message,
+            duration: status.includes('✅') ? 6000 : status.includes('⚠️') ? 8000 : 10000
+          };
+          
+          if (status.includes('✅')) {
+            toast({
+              title,
+              ...toastConfig
+            });
+          } else if (status.includes('⚠️')) {
+            toast({
+              title,
+              ...toastConfig,
+              variant: "default"
+            });
+          } else {
+            toast({
+              title,
+              ...toastConfig,
+              variant: "destructive"
+            });
+          }
+
+          // Se confiança baixa ou avisos, mostrar raciocínio
+          if ((confidence < 0.85 || warnings.length > 0) && reasoning) {
+            console.log('💭 Raciocínio detalhado:', reasoning);
+            setTimeout(() => {
+              toast({
+                title: "💭 Análise Detalhada do DUAL-AI",
+                description: reasoning.substring(0, 200) + (reasoning.length > 200 ? '...' : ''),
+                duration: 10000
+              });
+            }, 1500);
+          }
+        } else {
+          throw new Error(`IA conseguiu ordenar apenas ${orderedFiles.length} de ${selectedFiles.length} páginas. Status: ${status}`);
+        }
+      } else {
+        throw new Error('Resposta inválida da IA');
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao organizar com IA:', error);
+      toast({
+        title: "❌ Erro na organização",
+        description: error.message || "Não foi possível organizar as páginas. Tente ordenar manualmente ou com menos imagens.",
+        variant: "destructive",
+        duration: 8000
+      });
+    } finally {
+      setIsAiSorting(false);
+    }
   };
 
   return (
@@ -422,8 +604,18 @@ export default function ChapterManager() {
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-manga-surface border-border/50 max-w-2xl">
-              <DialogHeader>
+              <DialogHeader className="relative">
                 <DialogTitle className="text-manga-text-primary">Criar Novo Capítulo</DialogTitle>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleAiSort}
+                  disabled={isAiSorting || selectedFiles.length === 0}
+                  className="absolute top-0 right-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full px-3 py-1 text-xs shadow-lg hover:shadow-xl transition-all"
+                  title="Organizar páginas com IA"
+                >
+                  {isAiSorting ? "🔄" : "🧠"} IA
+                </Button>
               </DialogHeader>
               
               <div className="space-y-6">
@@ -491,20 +683,22 @@ export default function ChapterManager() {
                       <p className="text-sm text-manga-text-muted mb-4">
                         As imagens serão ordenadas automaticamente por nome/número
                       </p>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          id="file-upload"
-                        />
-                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-manga-primary text-primary-foreground hover:opacity-90 transition-opacity">
-                          <FileImage className="h-4 w-4" />
-                          Escolher arquivos
-                        </span>
-                      </label>
+                      <Button
+                        type="button"
+                        className="bg-manga-primary hover:opacity-90"
+                        onClick={() => document.getElementById('file-upload-input')?.click()}
+                      >
+                        <FileImage className="h-4 w-4 mr-2" />
+                        Escolher arquivos
+                      </Button>
+                      <input
+                        id="file-upload-input"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                     </div>
                     {selectedFiles.length > 0 && (
                       <div className="mt-6 pt-6 border-t border-border/30">
@@ -684,7 +878,10 @@ export default function ChapterManager() {
                             size="sm" 
                             variant="outline" 
                             className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleDeleteChapter(chapter.id)}
+                            onClick={() => {
+                              setChapterToDelete(chapter.id);
+                              setDeleteDialogOpen(true);
+                            }}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -698,6 +895,23 @@ export default function ChapterManager() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja excluir este capítulo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O capítulo e todas as suas páginas serão permanentemente removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteChapter} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
