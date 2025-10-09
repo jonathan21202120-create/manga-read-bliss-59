@@ -543,7 +543,12 @@ const MangaReader = () => {
       <div className={`min-h-screen ${readerSettings.readingMode === "webtoon" ? "pt-20 md:pt-32 pb-20 md:pb-8" : "flex items-center justify-center p-2 md:p-4 pt-20 md:pt-32 pb-20 md:pb-24"}`}>
         <div 
           className={`relative ${readerSettings.readingMode === "webtoon" ? "w-full flex justify-center" : "max-w-full max-h-full"}`}
-          style={{ transform: readerSettings.readingMode === "webtoon" ? "none" : `scale(${readerSettings.zoom / 100})` }}
+          style={{ 
+            transform: readerSettings.readingMode === "webtoon" ? `scale(${readerSettings.zoom / 100})` : `scale(${readerSettings.zoom / 100})`,
+            filter: `brightness(${readerSettings.brightness}%) contrast(${readerSettings.contrast}%) ${readerSettings.invertColors ? 'invert(1)' : ''} ${readerSettings.grayscale ? 'grayscale(1)' : ''}`,
+            transformOrigin: 'center center',
+            transition: `filter ${readerSettings.transitionSpeed}ms ease, transform ${readerSettings.transitionSpeed}ms ease`
+          }}
         >
           {readerSettings.readingMode === "single" ? (
             <ProtectedImage
