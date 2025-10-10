@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopMangaDropdown } from "@/components/TopMangaDropdown";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
@@ -92,6 +93,9 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
             <TopMangaDropdown topMangas={topMangas} onRead={onRead} />
           )}
           
+          {/* Theme Selector */}
+          <ThemeSelector />
+          
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-manga-text-muted" />
             <Input
@@ -143,6 +147,12 @@ export function Navigation({ topMangas = [], onRead }: NavigationProps) {
                 <TopMangaDropdown topMangas={topMangas} onRead={onRead} />
               </div>
             )}
+            
+            {/* Theme Selector Mobile */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-manga-text-secondary">Tema:</span>
+              <ThemeSelector />
+            </div>
             
             {/* Search */}
             <div className="relative">

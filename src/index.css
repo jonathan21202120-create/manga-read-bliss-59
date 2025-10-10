@@ -36,7 +36,7 @@ All colors MUST be HSL.
     --input: 220 13% 15%;
     --ring: 263 70% 65%;
 
-    /* Manga app specific tokens */
+    /* Manga app specific tokens - Tema Roxo (padrão) */
     --manga-primary: 263 70% 65%;
     --manga-secondary: 193 83% 67%;
     --manga-surface: 220 13% 11%;
@@ -49,7 +49,6 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(263 70% 65%), hsl(193 83% 67%));
     --gradient-surface: linear-gradient(180deg, hsl(220 13% 11%), hsl(220 13% 9%));
     --gradient-card: linear-gradient(135deg, hsl(220 13% 15%), hsl(220 13% 11%));
-    --gradient-card: linear-gradient(145deg, hsl(220 13% 11%), hsl(220 13% 13%));
     
     /* Shadows */
     --shadow-manga: 0 10px 30px -10px hsl(263 70% 65% / 0.3);
@@ -63,20 +62,78 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* Tema Oceano (Azul) */
+  [data-theme="ocean"] {
+    --primary: 217 91% 60%;
+    --accent: 199 89% 48%;
+    --ring: 217 91% 60%;
+
+    --manga-primary: 217 91% 60%;
+    --manga-secondary: 199 89% 48%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%));
+    --shadow-manga: 0 10px 30px -10px hsl(217 91% 60% / 0.3);
+  }
+
+  /* Tema Fogo (Vermelho) */
+  [data-theme="fire"] {
+    --primary: 0 84% 60%;
+    --accent: 25 95% 53%;
+    --ring: 0 84% 60%;
+
+    --manga-primary: 0 84% 60%;
+    --manga-secondary: 25 95% 53%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(0 84% 60%), hsl(25 95% 53%));
+    --shadow-manga: 0 10px 30px -10px hsl(0 84% 60% / 0.3);
+  }
+
+  /* Tema Natureza (Verde) */
+  [data-theme="nature"] {
+    --primary: 160 84% 39%;
+    --accent: 142 71% 45%;
+    --ring: 160 84% 39%;
+
+    --manga-primary: 160 84% 39%;
+    --manga-secondary: 142 71% 45%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(160 84% 39%), hsl(142 71% 45%));
+    --shadow-manga: 0 10px 30px -10px hsl(160 84% 39% / 0.3);
+  }
+
+  /* Tema Dourado */
+  [data-theme="gold"] {
+    --primary: 38 92% 50%;
+    --accent: 48 96% 53%;
+    --ring: 38 92% 50%;
+
+    --manga-primary: 38 92% 50%;
+    --manga-secondary: 48 96% 53%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(38 92% 50%), hsl(48 96% 53%));
+    --shadow-manga: 0 10px 30px -10px hsl(38 92% 50% / 0.3);
+  }
+
+  /* Tema Manga (Roxo) - Explícito */
+  [data-theme="manga"] {
+    --primary: 263 70% 65%;
+    --accent: 263 70% 65%;
+    --ring: 263 70% 65%;
+
+    --manga-primary: 263 70% 65%;
+    --manga-secondary: 193 83% 67%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(263 70% 65%), hsl(193 83% 67%));
+    --shadow-manga: 0 10px 30px -10px hsl(263 70% 65% / 0.3);
   }
 
   .dark {
@@ -99,5 +156,17 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Transição suave ao trocar temas */
+  html {
+    transition: all 0.5s ease;
+  }
+
+  html * {
+    transition: background-color 0.5s ease, 
+                border-color 0.5s ease, 
+                color 0.5s ease,
+                box-shadow 0.5s ease;
   }
 }
