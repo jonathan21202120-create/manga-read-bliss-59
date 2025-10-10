@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Star, BookOpen, TrendingUp } from "lucide-react";
@@ -17,6 +18,7 @@ interface HeroManga {
 
 export function HeroSection() {
   const [featuredManga, setFeaturedManga] = useState<HeroManga | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDailyFeaturedManga();
@@ -124,11 +126,22 @@ export function HeroSection() {
           
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button size="lg" variant="manga" className="text-base">
+            <Button 
+              size="lg" 
+              variant="manga" 
+              className="text-base"
+              onClick={() => featuredManga && navigate(`/manga/${featuredManga.id}`)}
+              disabled={!featuredManga}
+            >
               <Play className="h-5 w-5 mr-2" />
               Começar a Ler
             </Button>
-            <Button size="lg" variant="manga-outline" className="text-base">
+            <Button 
+              size="lg" 
+              variant="manga-outline" 
+              className="text-base"
+              onClick={() => navigate('/library')}
+            >
               Ver Biblioteca
             </Button>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { MangaGrid } from "@/components/MangaGrid";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ export default function Library() {
   const { toast } = useToast();
   const { progress, isLoading } = useReadingProgress();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Transform reading progress to library format
   const libraryMangas = progress.map(p => ({
@@ -32,11 +34,7 @@ export default function Library() {
   }));
 
   const handleRead = (id: string) => {
-    const manga = libraryMangas.find(m => m.id === id);
-    toast({
-      title: "Continuando leitura...",
-      description: manga ? `Retomando ${manga.title}` : "",
-    });
+    navigate(`/manga/${id}`);
   };
 
   const handleFavoriteToggle = (id: string) => {
