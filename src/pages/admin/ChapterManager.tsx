@@ -868,10 +868,27 @@ export default function ChapterManager() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => navigate(`/manga/${mangaId}/chapter/${chapter.id}`)}
+                            title="Visualizar capítulo"
+                          >
                             <Eye className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              toast({
+                                title: "Em desenvolvimento",
+                                description: "Edição de capítulos será implementada em breve",
+                              });
+                            }}
+                            title="Editar capítulo"
+                          >
                             <Edit className="h-3 w-3" />
                           </Button>
                           <Button 
@@ -882,6 +899,7 @@ export default function ChapterManager() {
                               setChapterToDelete(chapter.id);
                               setDeleteDialogOpen(true);
                             }}
+                            title="Deletar capítulo"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
