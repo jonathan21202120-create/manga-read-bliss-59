@@ -55,6 +55,8 @@ export default function ChapterManager() {
   const [isAiSorting, setIsAiSorting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [newChapter, setNewChapter] = useState({
     number: 1,
     title: "",
@@ -379,6 +381,113 @@ export default function ChapterManager() {
     });
   };
 
+  const handleEditChapter = (chapter: Chapter) => {
+    setEditingChapter(chapter);
+    setNewChapter({
+      number: chapter.number,
+      title: chapter.title,
+      status: chapter.status
+    });
+    setSelectedFiles([]);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateChapter = async () => {
+    if (!editingChapter || !newChapter.title || !mangaId) {
+      toast({
+        title: "Erro",
+        description: "Preencha o título do capítulo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      let pageUrls = editingChapter.pageUrls || [];
+
+      // Se houver novos arquivos, fazer upload
+      if (selectedFiles.length > 0) {
+        const uploadResults = await uploadMultipleFiles(selectedFiles, {
+          folder: 'manga-pages',
+          allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+          maxSizeBytes: 10 * 1024 * 1024
+        });
+
+        if (uploadResults.length === 0) {
+          toast({
+            title: "Erro",
+            description: "Falha no upload das páginas",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const newPageUrls = uploadResults
+          .map(result => result.url)
+          .filter(url => url && !url.startsWith('blob:') && !url.startsWith('file:'));
+        
+        if (newPageUrls.length !== uploadResults.length) {
+          toast({
+            title: "Erro",
+            description: "Algumas páginas não foram enviadas corretamente.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        pageUrls = [...pageUrls, ...newPageUrls];
+      }
+
+      // Atualizar capítulo no banco
+      const { error } = await supabase
+        .from('chapters')
+        .update({
+          chapter_number: newChapter.number,
+          title: newChapter.title,
+          page_count: pageUrls.length,
+          pages_urls: pageUrls
+        })
+        .eq('id', editingChapter.id);
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      setChapters(prev => prev.map(ch => 
+        ch.id === editingChapter.id
+          ? {
+              ...ch,
+              number: newChapter.number,
+              title: newChapter.title,
+              pages: pageUrls.length,
+              pageUrls: pageUrls,
+              status: newChapter.status
+            }
+          : ch
+      ));
+
+      setIsEditDialogOpen(false);
+      setEditingChapter(null);
+      setSelectedFiles([]);
+      setNewChapter({
+        number: 1,
+        title: "",
+        status: "draft"
+      });
+
+      toast({
+        title: "Sucesso",
+        description: "Capítulo atualizado com sucesso!"
+      });
+    } catch (error: any) {
+      console.error('Error updating chapter:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar capítulo: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleAiSort = async () => {
     if (selectedFiles.length === 0) {
       toast({
@@ -596,7 +705,17 @@ export default function ChapterManager() {
               )}
             </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setSelectedFiles([]);
+              setNewChapter({
+                number: Math.max(...chapters.map(c => c.number), 0) + 1,
+                title: "",
+                status: "draft"
+              });
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary hover:opacity-90">
                 <Plus className="h-4 w-4 mr-2" />
@@ -881,12 +1000,7 @@ export default function ChapterManager() {
                             size="sm" 
                             variant="outline" 
                             className="h-8 w-8 p-0"
-                            onClick={() => {
-                              toast({
-                                title: "Em desenvolvimento",
-                                description: "Edição de capítulos será implementada em breve",
-                              });
-                            }}
+                            onClick={() => handleEditChapter(chapter)}
                             title="Editar capítulo"
                           >
                             <Edit className="h-3 w-3" />
@@ -913,6 +1027,172 @@ export default function ChapterManager() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Chapter Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setEditingChapter(null);
+          setSelectedFiles([]);
+        }
+      }}>
+        <DialogContent className="bg-manga-surface border-border/50 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-manga-text-primary">Editar Capítulo</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-chapter-number" className="text-manga-text-secondary">
+                  Número do Capítulo
+                </Label>
+                <Input
+                  id="edit-chapter-number"
+                  type="number"
+                  value={newChapter.number}
+                  onChange={(e) => setNewChapter(prev => ({ ...prev, number: parseInt(e.target.value) }))}
+                  className="bg-manga-surface-elevated border-border/50"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-manga-text-secondary">Status</Label>
+                <select 
+                  value={newChapter.status}
+                  onChange={(e) => setNewChapter(prev => ({ ...prev, status: e.target.value as "published" | "draft" }))}
+                  className="w-full h-10 px-3 rounded-md bg-manga-surface-elevated border border-border/50 text-manga-text-primary"
+                >
+                  <option value="draft">Rascunho</option>
+                  <option value="published">Publicado</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-chapter-title" className="text-manga-text-secondary">
+                Título do Capítulo
+              </Label>
+              <Input
+                id="edit-chapter-title"
+                value={newChapter.title}
+                onChange={(e) => setNewChapter(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Digite o título do capítulo"
+                className="bg-manga-surface-elevated border-border/50"
+              />
+            </div>
+
+            {editingChapter && (
+              <div className="space-y-2">
+                <Label className="text-manga-text-secondary">
+                  Páginas Atuais: {editingChapter.pages} páginas
+                </Label>
+                <p className="text-sm text-manga-text-muted">
+                  Você pode adicionar novas páginas ao final do capítulo
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-manga-text-secondary">
+                Adicionar Novas Páginas
+              </Label>
+              <div 
+                className={`border-2 border-dashed rounded-lg p-8 transition-all ${
+                  isDragging 
+                    ? 'border-manga-primary bg-manga-primary/10 scale-[1.02]' 
+                    : 'border-border/50 hover:border-manga-primary/50'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="text-center">
+                  <Upload className={`h-12 w-12 mx-auto mb-3 transition-colors ${
+                    isDragging ? 'text-manga-primary' : 'text-manga-text-muted'
+                  }`} />
+                  <p className="text-lg font-medium text-manga-text-primary mb-2">
+                    {isDragging ? 'Solte as imagens aqui!' : 'Arraste e solte novas imagens'}
+                  </p>
+                  <Button
+                    type="button"
+                    className="bg-manga-primary hover:opacity-90 mt-2"
+                    onClick={() => document.getElementById('edit-file-upload-input')?.click()}
+                  >
+                    <FileImage className="h-4 w-4 mr-2" />
+                    Escolher arquivos
+                  </Button>
+                  <input
+                    id="edit-file-upload-input"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-border/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium text-manga-text-secondary">
+                        {selectedFiles.length} nova(s) imagem(ns) para adicionar
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedFiles([])}
+                        className="text-xs h-7"
+                      >
+                        Limpar
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                      {Array.from(selectedFiles).map((file, index) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-[3/4] rounded-lg overflow-hidden bg-manga-surface-elevated border border-border/30">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`Nova página ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleRemoveFile(index)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                          <p className="mt-1 text-xs text-center text-manga-text-muted truncate">
+                            {file.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleUpdateChapter} 
+                disabled={isUploading}
+                className="bg-gradient-primary hover:opacity-90"
+              >
+                {isUploading ? "Atualizando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
