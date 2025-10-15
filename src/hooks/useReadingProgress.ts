@@ -6,6 +6,7 @@ interface ReadingProgress {
   mangaId: string;
   mangaTitle: string;
   mangaCoverUrl: string;
+  mangaGenre: string[];
   chapterId: string;
   chapterNumber: number;
   chapterTitle: string;
@@ -37,6 +38,7 @@ export const useReadingProgress = () => {
         mangaId: item.manga_id,
         mangaTitle: item.manga_title,
         mangaCoverUrl: item.manga_cover_url,
+        mangaGenre: item.manga_genre || [],
         chapterId: item.chapter_id,
         chapterNumber: item.chapter_number,
         chapterTitle: item.chapter_title,
@@ -66,6 +68,7 @@ export const useReadingProgress = () => {
                 mangaId: parsed.manga_id,
                 mangaTitle: 'Carregando...', // Will be updated when online
                 mangaCoverUrl: '',
+                mangaGenre: [],
                 chapterId: parsed.chapter_id,
                 chapterNumber: 0,
                 chapterTitle: 'Carregando...',

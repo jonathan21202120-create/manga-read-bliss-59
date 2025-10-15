@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, BookOpen, Clock, CheckCircle } from "lucide-react";
+import { Search, BookOpen, Clock, CheckCircle, Filter } from "lucide-react";
 
 export default function Library() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const { toast } = useToast();
   const { progress, isLoading } = useReadingProgress();
   const { user } = useAuth();
@@ -26,7 +28,7 @@ export default function Library() {
     rating: 0, // Not available in progress data
     chapters: p.totalPages, // Using pages as chapters for display
     status: "ongoing" as const,
-    genre: [] as string[], // Not available in progress data
+    genre: p.mangaGenre || [],
     description: "",
     isFavorite: true, // Assume all in progress are favorites
     readChapters: p.currentPage,
@@ -44,14 +46,33 @@ export default function Library() {
     });
   };
 
-  const filteredMangas = libraryMangas.filter(manga => {
-    if (filter === "reading" && manga.readChapters < manga.chapters) return true;
-    if (filter === "completed" && manga.readChapters >= manga.chapters) return true;
-    if (filter === "all") return true;
-    return false;
-  }).filter(manga => 
-    manga.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Get all unique genres
+  const allGenres = Array.from(
+    new Set(libraryMangas.flatMap(manga => manga.genre))
+  ).sort();
+
+  const handleGenreToggle = (genre: string) => {
+    setSelectedGenres(prev =>
+      prev.includes(genre)
+        ? prev.filter(g => g !== genre)
+        : [...prev, genre]
+    );
+  };
+
+  const filteredMangas = libraryMangas
+    .filter(manga => {
+      if (filter === "reading" && manga.readChapters < manga.chapters) return true;
+      if (filter === "completed" && manga.readChapters >= manga.chapters) return true;
+      if (filter === "all") return true;
+      return false;
+    })
+    .filter(manga =>
+      manga.title.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter(manga =>
+      selectedGenres.length === 0 ||
+      manga.genre.some(g => selectedGenres.includes(g))
+    );
 
   return (
     <div className="min-h-screen bg-gradient-surface">
@@ -65,15 +86,59 @@ export default function Library() {
 
         {/* Filtros e busca */}
         <div className="space-y-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-manga-text-muted" />
-            <Input
-              placeholder="Buscar na biblioteca..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-manga-surface-elevated border-border/50 focus:border-manga-primary"
-            />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-manga-text-muted" />
+              <Input
+                placeholder="Buscar na biblioteca..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-manga-surface-elevated border-border/50 focus:border-manga-primary"
+              />
+            </div>
+            
+            <Button
+              variant="manga-outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filtros Avançados
+              {selectedGenres.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedGenres.length}
+                </Badge>
+              )}
+            </Button>
           </div>
+
+          {showFilters && allGenres.length > 0 && (
+            <div className="bg-manga-surface-elevated p-4 rounded-lg border border-border/50 space-y-3">
+              <h3 className="text-sm font-semibold text-manga-text-primary">Gêneros</h3>
+              <div className="flex flex-wrap gap-2">
+                {allGenres.map((genre) => (
+                  <Badge
+                    key={genre}
+                    variant={selectedGenres.includes(genre) ? "default" : "outline"}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => handleGenreToggle(genre)}
+                  >
+                    {genre}
+                  </Badge>
+                ))}
+              </div>
+              {selectedGenres.length > 0 && (
+                <Button
+                  variant="manga-ghost"
+                  size="sm"
+                  onClick={() => setSelectedGenres([])}
+                  className="mt-2"
+                >
+                  Limpar Filtros
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 flex-wrap">
             <Button
