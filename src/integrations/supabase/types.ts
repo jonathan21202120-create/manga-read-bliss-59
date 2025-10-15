@@ -301,6 +301,7 @@ export type Database = {
           is_completed: boolean
           last_read_at: string
           manga_cover_url: string
+          manga_genre: string[]
           manga_id: string
           manga_title: string
           progress_percentage: number
